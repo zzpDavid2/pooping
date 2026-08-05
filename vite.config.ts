@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: {
         name: '厕评 pooping',
         short_name: '厕评',
-        description: '厕所版大众点评 · Yelp for toilets',
+        description: '厕所点评 · Toilet reviews',
         start_url: '/',
         display: 'standalone',
         background_color: '#fdf8f3',

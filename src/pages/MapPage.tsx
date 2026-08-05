@@ -1,12 +1,13 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowUpDown, Crosshair, Loader2, Plus, X } from 'lucide-react'
+import { ArrowUpDown, Crosshair, Loader2, Plus, ThumbsDown, ThumbsUp, X } from 'lucide-react'
 
 import {
   getTopReviews,
   getTopToilets,
   isSupabaseConfigured,
   voteReviewFunny,
+  voteToiletFunny,
   type FeaturedReview,
   type LatLng,
   type Review,
@@ -16,6 +17,7 @@ import {
 import AddToiletSheet from '@/components/AddToiletSheet'
 import FilterBar from '@/components/FilterBar'
 import ReviewCard from '@/components/ReviewCard'
+import ShareCard from '@/components/ShareCard'
 import ToiletCard from '@/components/ToiletCard'
 import TopBar from '@/components/TopBar'
 import { useGeolocation } from '@/hooks/useGeolocation'
@@ -86,10 +88,16 @@ export default function MapPage() {
 
   const [addMode, setAddMode] = useState<AddMode>('off')
   const [pinLocation, setPinLocation] = useState<LatLng | null>(null)
+  const [sharing, setSharing] = useState<{ review: Review; toiletName: string } | null>(null)
 
   const mapRef = useRef<MapHandle | null>(null)
   const autoSearchTimer = useRef<number | null>(null)
   const sheetDragRef = useRef<{ y: number; progress: number } | null>(null)
+  const sheetTouchRef = useRef<{
+    y: number
+    progress: number
+    resizing: boolean
+  } | null>(null)
   const sheetProgressRef = useRef(0)
   const wheelSnapTimer = useRef<number | null>(null)
   const featuredBootstrapped = useRef(false)
@@ -243,6 +251,29 @@ export default function MapPage() {
     })
   }
 
+  function handleFeaturedToiletVote(toilet: Toilet, value: -1 | 1) {
+    setFeaturedToilets((cur) =>
+      cur
+        .map((t) => (t.id === toilet.id ? applyToiletVote(t, value) : t))
+        .sort(sortFeaturedToilets),
+    )
+    void voteToiletFunny(toilet.id, value).then((res) => {
+      if (!res.data) return
+      setFeaturedToilets((cur) =>
+        cur
+          .map((t) => (t.id === res.data!.id ? { ...t, ...res.data! } : t))
+          .sort(sortFeaturedToilets),
+      )
+    })
+  }
+
+  function handleFeaturedReviewShare(review: FeaturedReview) {
+    setSharing({
+      review,
+      toiletName: displayFeaturedToiletName(review.toilet, locale),
+    })
+  }
+
   function recenter() {
     if (position) {
       mapRef.current?.moveTo(position, 16)
@@ -290,6 +321,44 @@ export default function MapPage() {
     snapSheet()
   }
 
+  function startSheetTouch(clientY: number) {
+    sheetTouchRef.current = {
+      y: clientY,
+      progress: sheetProgressRef.current,
+      resizing: true,
+    }
+    setSheetInteracting(true)
+  }
+
+  function resizeSheetFromTouch(clientY: number, startY: number, startProgress: number) {
+    const rangePx = ((SHEET_MAX_VH - sheetMinVh) / 100) * window.innerHeight
+    if (rangePx <= 0) return
+    setSheetProgressValue(startProgress + ((startY - clientY) / rangePx) * SHEET_DRAG_GAIN)
+  }
+
+  function handleSheetTouchStart(e: React.TouchEvent) {
+    e.stopPropagation()
+    const touch = e.touches[0]
+    if (!touch) return
+    startSheetTouch(touch.clientY)
+  }
+
+  function handleSheetTouchMove(e: React.TouchEvent) {
+    e.stopPropagation()
+    const touch = e.touches[0]
+    const drag = sheetTouchRef.current
+    if (!touch || !drag) return
+    e.preventDefault()
+    resizeSheetFromTouch(touch.clientY, drag.y, drag.progress)
+  }
+
+  function handleSheetTouchEnd(e: React.TouchEvent) {
+    e.stopPropagation()
+    if (!sheetTouchRef.current?.resizing) return
+    sheetTouchRef.current = null
+    snapSheet()
+  }
+
   function setSheetProgressValue(next: number | ((current: number) => number)) {
     const value = clamp01(
       typeof next === 'function' ? next(sheetProgressRef.current) : next,
@@ -323,6 +392,44 @@ export default function MapPage() {
       wheelSnapTimer.current = null
       snapSheet()
     }, 140)
+  }
+
+  function handlePanelTouchStart(e: React.TouchEvent<HTMLDivElement>) {
+    e.stopPropagation()
+    const touch = e.touches[0]
+    if (!touch) return
+    sheetTouchRef.current = {
+      y: touch.clientY,
+      progress: sheetProgressRef.current,
+      resizing: false,
+    }
+  }
+
+  function handlePanelTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    e.stopPropagation()
+    const touch = e.touches[0]
+    const drag = sheetTouchRef.current
+    if (!touch || !drag) return
+
+    const deltaY = drag.y - touch.clientY
+    const atTop = e.currentTarget.scrollTop <= 0
+    const progress = sheetProgressRef.current
+    const shouldResize =
+      (deltaY > 0 && progress < 1) || (deltaY < 0 && atTop && progress > 0)
+
+    if (!shouldResize) return
+
+    e.preventDefault()
+    drag.resizing = true
+    setSheetInteracting(true)
+    resizeSheetFromTouch(touch.clientY, drag.y, drag.progress)
+  }
+
+  function handlePanelTouchEnd(e: React.TouchEvent<HTMLDivElement>) {
+    e.stopPropagation()
+    const wasResizing = sheetTouchRef.current?.resizing
+    sheetTouchRef.current = null
+    if (wasResizing) snapSheet()
   }
 
   function stopSheetEvent(e: React.SyntheticEvent) {
@@ -403,7 +510,7 @@ export default function MapPage() {
           </div>
         ) : (
           <div
-            className={`safe-bottom absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-2xl bg-white shadow-[0_-4px_24px_rgba(0,0,0,0.08)] ${
+            className={`safe-bottom absolute inset-x-0 bottom-0 z-30 flex flex-col rounded-t-2xl bg-white shadow-[0_-4px_24px_rgba(0,0,0,0.08)] ${
               sheetInteracting ? '' : 'transition-[height] duration-200 ease-out'
             }`}
             style={{ height: `${sheetHeightVh}vh` }}
@@ -412,13 +519,17 @@ export default function MapPage() {
             onTouchMove={stopSheetEvent}
             onWheel={stopSheetEvent}
           >
-            <div className="px-3 pb-1 pt-2.5">
+            <div className="sticky top-0 z-10 rounded-t-2xl bg-white px-3 pb-1 pt-2.5">
               <button
                 type="button"
                 onPointerDown={handleSheetPointerDown}
                 onPointerMove={handleSheetPointerMove}
                 onPointerUp={handleSheetPointerUp}
                 onPointerCancel={handleSheetPointerUp}
+                onTouchStart={handleSheetTouchStart}
+                onTouchMove={handleSheetTouchMove}
+                onTouchEnd={handleSheetTouchEnd}
+                onTouchCancel={handleSheetTouchEnd}
                 onDoubleClick={() => {
                   setSheetInteracting(false)
                   setSheetProgressValue((p) => (p > 0.5 ? 0 : 1))
@@ -459,8 +570,12 @@ export default function MapPage() {
 
             <div
               data-bottom-sheet-content
-              className="flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 pb-20"
+              className="flex-1 touch-pan-y space-y-2 overflow-y-auto overscroll-contain px-3 pb-20"
               onWheel={handlePanelWheel}
+              onTouchStart={handlePanelTouchStart}
+              onTouchMove={handlePanelTouchMove}
+              onTouchEnd={handlePanelTouchEnd}
+              onTouchCancel={handlePanelTouchEnd}
             >
               {!isSupabaseConfigured && (
                 <Notice title={t.dbNotConfigured} hint={t.dbNotConfiguredHint} />
@@ -474,7 +589,9 @@ export default function MapPage() {
                   toilets={featuredToilets}
                   reviews={featuredReviews}
                   onToiletClick={handleFeaturedToiletClick}
+                  onToiletVote={handleFeaturedToiletVote}
                   onReviewVote={handleReviewVote}
+                  onReviewShare={handleFeaturedReviewShare}
                   onLoadMore={loadMoreFeatured}
                   hasMore={hasMoreFeatured}
                   loadingMore={featuredLoading}
@@ -502,7 +619,7 @@ export default function MapPage() {
           <button
             type="button"
             onClick={() => setMode((cur) => (cur === 'map' ? 'funny' : 'map'))}
-            className="safe-bottom absolute bottom-4 left-1/2 z-20 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border-2 border-poo-600 bg-white text-2xl text-poo-700 shadow-xl"
+            className="safe-bottom absolute bottom-4 left-1/2 z-40 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border-2 border-poo-600 bg-white text-2xl text-poo-700 shadow-xl"
             aria-label={mode === 'map' ? t.funnyMode : t.discoverMode}
             title={mode === 'map' ? t.funnyMode : t.discoverMode}
           >
@@ -523,6 +640,14 @@ export default function MapPage() {
           }}
         />
       )}
+
+      {sharing && (
+        <ShareCard
+          review={sharing.review}
+          toiletName={sharing.toiletName}
+          onClose={() => setSharing(null)}
+        />
+      )}
     </div>
   )
 }
@@ -531,7 +656,9 @@ function FunnyMasonry({
   toilets,
   reviews,
   onToiletClick,
+  onToiletVote,
   onReviewVote,
+  onReviewShare,
   onLoadMore,
   hasMore,
   loadingMore,
@@ -539,7 +666,9 @@ function FunnyMasonry({
   toilets: Toilet[]
   reviews: FeaturedReview[]
   onToiletClick: (id: string) => void
+  onToiletVote: (toilet: Toilet, value: -1 | 1) => void
   onReviewVote: (review: Review, value: -1 | 1) => void
+  onReviewShare: (review: FeaturedReview) => void
   onLoadMore: () => void
   hasMore: boolean
   loadingMore: boolean
@@ -574,30 +703,65 @@ function FunnyMasonry({
       <div className="columns-2 gap-2 [column-fill:_balance] md:columns-3">
         {items.map((item) =>
           item.kind === 'toilet' ? (
-            <button
+            <article
               key={`toilet-${item.id}`}
-              type="button"
-              onClick={() => onToiletClick(item.toilet.id)}
               className="mb-2 w-full break-inside-avoid rounded-xl border border-poo-100 bg-poo-50 p-3 text-left"
             >
-              <p className="text-[11px] font-medium text-poo-700">{t.featuredToilets}</p>
-              <h3 className="mt-1 text-sm font-semibold leading-snug">
-                {displayName(item.toilet, locale)}
-              </h3>
-              {displayPlace(item.toilet) && (
-                <p className="mt-1 text-xs text-ink-faint">{displayPlace(item.toilet)}</p>
-              )}
-              <div className="mt-2 flex items-center justify-between text-xs text-ink-soft">
+              <button
+                type="button"
+                onClick={() => onToiletClick(item.toilet.id)}
+                className="block w-full text-left"
+              >
+                <p className="text-[11px] font-medium text-poo-700">{t.featuredToilets}</p>
+                <h3 className="mt-1 text-sm font-semibold leading-snug">
+                  {displayName(item.toilet, locale)}
+                </h3>
+                {displayPlace(item.toilet) && (
+                  <p className="mt-1 text-xs text-ink-faint">{displayPlace(item.toilet)}</p>
+                )}
+              </button>
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-ink-soft">
                 <PooScore toilet={item.toilet} />
-                <span>👍 {item.toilet.funnyUp}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onToiletVote(item.toilet, 1)}
+                    className={`inline-flex items-center gap-1 rounded-lg px-1.5 py-1 ${
+                      item.toilet.funnyVote === 1
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : 'text-ink-faint hover:bg-white hover:text-ink-soft'
+                    }`}
+                    aria-label={t.funnyUp}
+                  >
+                    <ThumbsUp size={14} />
+                    {item.toilet.funnyUp}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onToiletVote(item.toilet, -1)}
+                    className={`inline-flex items-center gap-1 rounded-lg px-1.5 py-1 ${
+                      item.toilet.funnyVote === -1
+                        ? 'bg-rose-50 text-rose-700'
+                        : 'text-ink-faint hover:bg-white hover:text-ink-soft'
+                    }`}
+                    aria-label={t.funnyDown}
+                  >
+                    <ThumbsDown size={14} />
+                    {item.toilet.funnyDown}
+                  </button>
+                </div>
               </div>
-            </button>
+            </article>
           ) : (
             <div key={`review-${item.id}`} className="mb-2 break-inside-avoid">
               <p className="mb-1 px-1 text-[11px] font-medium text-poo-700">
                 {t.featuredReviews} · {displayFeaturedToiletName(item.review.toilet, locale)}
               </p>
-              <ReviewCard review={item.review} onVote={onReviewVote} />
+              <ReviewCard
+                review={item.review}
+                onVote={onReviewVote}
+                onShare={() => onReviewShare(item.review)}
+              />
             </div>
           ),
         )}
@@ -688,6 +852,26 @@ function applyReviewVote(review: Review, value: -1 | 1): Review {
   next.funnyVote = value
   next.funnyScore = next.funnyUp - next.funnyDown
   return next
+}
+
+function applyToiletVote(toilet: Toilet, value: -1 | 1): Toilet {
+  if (toilet.funnyVote === value) return toilet
+  const next = { ...toilet }
+  if (toilet.funnyVote === 1) next.funnyUp -= 1
+  if (toilet.funnyVote === -1) next.funnyDown -= 1
+  if (value === 1) next.funnyUp += 1
+  if (value === -1) next.funnyDown += 1
+  next.funnyVote = value
+  next.funnyScore = next.funnyUp - next.funnyDown
+  return next
+}
+
+function sortFeaturedToilets(a: Toilet, b: Toilet): number {
+  const funny = b.funnyScore - a.funnyScore
+  if (funny !== 0) return funny
+  const score = (overallScore(b) ?? 0) - (overallScore(a) ?? 0)
+  if (score !== 0) return score
+  return stableJitter(a.id) - stableJitter(b.id)
 }
 
 function MapPlaceholder({ label }: { label: string }) {

@@ -56,6 +56,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // 让浏览器知道当前语言：影响换行断词、字体回退和读屏器发音
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en'
+    document.title = locale === 'zh' ? '厕评 · pooping' : 'pooping'
   }, [locale])
 
   const value = useMemo<LocaleContextValue>(

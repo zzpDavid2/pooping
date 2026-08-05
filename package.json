@@ -12,6 +12,7 @@
     "check:external": "bash scripts/check-external.sh",
     "icons": "bash scripts/make-icons.sh",
     "import:osm": "tsx scripts/import-osm.ts",
+    "push:local-data": "tsx scripts/push-local-data.ts",
     "seed:reviews": "tsx scripts/seed-reviews.ts",
     "prebuild:static": "tsx scripts/prebuild-static.ts",
     "db:start": "supabase start",

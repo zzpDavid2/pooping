@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronLeft, PenLine, ThumbsDown, ThumbsUp } from 'lucide-react'
 
 import {
@@ -27,6 +27,7 @@ interface ToiletPageProps {
 
 export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
   const { t, locale } = useI18n()
+  const location = useLocation()
   const navigate = useNavigate()
 
   const [toilet, setToilet] = useState<Toilet | null>(null)
@@ -95,12 +96,20 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
     })
   }
 
+  function goBack() {
+    if (location.key === 'default') {
+      navigate('/', { replace: true })
+      return
+    }
+    navigate(-1)
+  }
+
   return (
     <div className="fixed inset-0 z-30 flex flex-col overflow-hidden bg-poo-50">
       <header className="safe-top sticky top-0 z-10 flex items-center gap-2 border-b border-poo-100 bg-white/95 px-2 py-2.5 backdrop-blur">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="rounded-lg p-1.5 text-ink-soft hover:bg-poo-50"
           aria-label={t.back}
         >

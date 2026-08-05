@@ -4,7 +4,7 @@ Shared project notes for coding agents. Read this before editing, then keep `CLA
 
 ## Product
 
-厕评 is "Yelp for toilets": nearby restroom discovery plus funny, AI-polished reviews. The moat is the review content being funny enough to screenshot and share; structured restroom data keeps people coming back.
+厕评 is toilet reviews: nearby restroom discovery plus funny, AI-polished reviews. The moat is the review content being funny enough to screenshot and share; structured restroom data keeps people coming back.
 
 V1 is a PWA for the US first, Portland/Reed College as the initial density target, while keeping the app reachable from China.
 

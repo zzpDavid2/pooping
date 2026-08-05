@@ -100,12 +100,12 @@ export function renderShareCard(input: ShareCardInput): string | null {
 
   const brandX = PAD + emojiW + 16
   const brand = locale === 'zh' ? '厕评' : 'pooping'
-  const tagline = locale === 'zh' ? '厕所版大众点评' : 'Yelp, but for toilets'
+  const tagline = locale === 'zh' ? '厕所点评' : 'Toilet reviews'
 
   ctx.font = `700 46px ${FONT_STACK}`
   ctx.textBaseline = 'alphabetic'
   // 必须在 46px 字体还生效时量宽度。换成 26px 再量，得到的是小字号下的宽度，
-  // 副标题会直接压到 logo 上（英文下 "Yelp," 整个被盖住）。
+  // 副标题会直接压到 logo 上，英文短句也要避开品牌字。
   const brandWidth = ctx.measureText(brand).width
 
   ctx.fillStyle = '#c07540'

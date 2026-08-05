@@ -12,7 +12,7 @@ import type { Locale } from '@/api/types'
 const zh = {
   appName: '厕评',
   appNameLatin: 'pooping',
-  tagline: '厕所版大众点评',
+  tagline: '厕所点评',
   domain: 'pooping.me',
 
   // —— 地图页
@@ -116,7 +116,7 @@ const zh = {
   reviews: '锐评',
   reviewCount: (n: number) => (n === 0 ? '还没有评价' : `${n} 条评价`),
   beFirst: '第一个来评的人，说不定能笑死后面所有人',
-  aiBadge: 'AI 润色',
+  aiBadge: 'AI',
   seedBadge: '示例数据',
   editedBadge: '本人改过',
   anonymous: '匿名马桶侠',
@@ -210,7 +210,7 @@ type Dict = typeof zh
 const en: Dict = {
   appName: 'pooping',
   appNameLatin: 'pooping',
-  tagline: 'Yelp, but for toilets',
+  tagline: 'Toilet reviews',
   domain: 'pooping.me',
 
   nearby: 'Toilets nearby',
@@ -306,7 +306,7 @@ const en: Dict = {
   reviews: 'Reviews',
   reviewCount: (n: number) => (n === 0 ? 'No reviews yet' : `${n} ${n === 1 ? 'review' : 'reviews'}`),
   beFirst: 'Go first. Set the tone. Ruin someone’s day in a fun way.',
-  aiBadge: 'AI-polished',
+  aiBadge: 'AI',
   seedBadge: 'Sample',
   editedBadge: 'Edited by author',
   anonymous: 'Anonymous Flusher',

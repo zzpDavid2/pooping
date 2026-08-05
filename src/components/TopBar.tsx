@@ -31,8 +31,14 @@ export default function TopBar({ region, onRegionChange }: TopBarProps) {
           <span className="text-base leading-none" aria-hidden="true">
             💩
           </span>
-          <span className="text-base font-bold tracking-tight">{t.appName}</span>
-          <span className="text-[10px] font-medium text-ink-faint">{t.domain}</span>
+          {locale === 'zh' ? (
+            <>
+              <span className="text-base font-bold tracking-tight">{t.appName}</span>
+              <span className="text-[10px] font-medium text-ink-faint">{t.appNameLatin}</span>
+            </>
+          ) : (
+            <span className="text-base font-bold tracking-tight">{t.appNameLatin}</span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">
