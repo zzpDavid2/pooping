@@ -80,6 +80,10 @@ export interface Toilet extends LatLng {
   avgPrivacy: number | null
 
   source: string | null
+  funnyUp: number
+  funnyDown: number
+  funnyScore: number
+  funnyVote: -1 | 0 | 1
   /** 只有 nearby 查询会带上，详情页没有 */
   distanceM: number | null
 }
@@ -104,7 +108,15 @@ export interface Review {
   editedByUser: boolean
   isSeed: boolean
   nickname: string | null
+  funnyUp: number
+  funnyDown: number
+  funnyScore: number
+  funnyVote: -1 | 0 | 1
   createdAt: string
+}
+
+export interface FeaturedReview extends Review {
+  toilet: Pick<Toilet, 'id' | 'name' | 'nameEn' | 'votedName' | 'building' | 'floor'>
 }
 
 /** 一个候选名 + 票数。Discord reaction 那种玩法。 */

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flag, PenLine, Share2, Sparkles } from 'lucide-react'
+import { Flag, PenLine, Share2, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react'
 
 import type { Review } from '@/api/types'
 import { useI18n } from '@/i18n/useI18n'
@@ -11,6 +11,7 @@ import ReportDialog from './ReportDialog'
 interface ReviewCardProps {
   review: Review
   onShare?: (review: Review) => void
+  onVote?: (review: Review, value: -1 | 1) => void
 }
 
 const TONE_CLASS = {
@@ -19,7 +20,7 @@ const TONE_CLASS = {
   neutral: 'bg-poo-100 text-ink-soft',
 } as const
 
-export default function ReviewCard({ review, onShare }: ReviewCardProps) {
+export default function ReviewCard({ review, onShare, onVote }: ReviewCardProps) {
   const { t, locale } = useI18n()
   const [reporting, setReporting] = useState(false)
   // 手写评价没有文风，也不该有文风标签
@@ -83,6 +84,36 @@ export default function ReviewCard({ review, onShare }: ReviewCardProps) {
         </div>
 
         <div className="flex items-center gap-1">
+          {onVote && (
+            <>
+              <button
+                type="button"
+                onClick={() => onVote(review, 1)}
+                className={`inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs ${
+                  review.funnyVote === 1
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'text-ink-faint hover:bg-poo-50 hover:text-ink-soft'
+                }`}
+                aria-label={t.funnyUp}
+              >
+                <ThumbsUp size={14} />
+                {review.funnyUp}
+              </button>
+              <button
+                type="button"
+                onClick={() => onVote(review, -1)}
+                className={`inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs ${
+                  review.funnyVote === -1
+                    ? 'bg-rose-50 text-rose-700'
+                    : 'text-ink-faint hover:bg-poo-50 hover:text-ink-soft'
+                }`}
+                aria-label={t.funnyDown}
+              >
+                <ThumbsDown size={14} />
+                {review.funnyDown}
+              </button>
+            </>
+          )}
           {onShare && (
             <button
               type="button"

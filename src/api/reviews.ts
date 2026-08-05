@@ -5,6 +5,7 @@ import {
   fail,
   fromThrown,
   type Locale,
+  type FeaturedReview,
   type Result,
   type Review,
   type ReviewStyle,
@@ -27,7 +28,24 @@ interface ReviewRow {
   edited_by_user: boolean | null
   is_seed: boolean | null
   nickname: string | null
+  funny_up: number | null
+  funny_down: number | null
+  funny_score: number | null
+  funny_vote?: number | null
   created_at: string
+}
+
+interface ToiletJoinRow {
+  id: string
+  name: string
+  name_en: string | null
+  voted_name: string | null
+  building: string | null
+  floor: string | null
+}
+
+interface FeaturedReviewRow extends ReviewRow {
+  toilets: ToiletJoinRow | ToiletJoinRow[] | null
 }
 
 function mapReviewRow(r: ReviewRow): Review {
@@ -48,12 +66,20 @@ function mapReviewRow(r: ReviewRow): Review {
     editedByUser: r.edited_by_user ?? false,
     isSeed: r.is_seed ?? false,
     nickname: r.nickname,
+    funnyUp: r.funny_up ?? 0,
+    funnyDown: r.funny_down ?? 0,
+    funnyScore: r.funny_score ?? 0,
+    funnyVote: voteValue(r.funny_vote),
     createdAt: r.created_at,
   }
 }
 
 const REVIEW_COLUMNS =
-  'id,toilet_id,user_id,clean,smell,queue,privacy,quick_tags,raw_note,ai_text,ai_style,is_ai,lang,edited_by_user,is_seed,nickname,created_at'
+  'id,toilet_id,user_id,clean,smell,queue,privacy,quick_tags,raw_note,ai_text,ai_style,is_ai,lang,edited_by_user,is_seed,nickname,funny_up,funny_down,funny_score,created_at'
+
+function voteValue(v: number | null | undefined): -1 | 0 | 1 {
+  return v === 1 || v === -1 ? v : 0
+}
 
 export async function getReviews(
   toiletId: string,
@@ -64,14 +90,50 @@ export async function getReviews(
   }
   try {
     const { data, error } = await supabase
-      .from('reviews')
-      .select(REVIEW_COLUMNS)
-      .eq('toilet_id', toiletId)
-      .order('created_at', { ascending: false })
-      .limit(limit)
+      .rpc('toilet_reviews', { p_toilet_id: toiletId, p_limit: limit })
 
     if (error) return fail(error.code || 'db_error', error.message)
     return ok(((data ?? []) as ReviewRow[]).map(mapReviewRow))
+  } catch (e) {
+    return fromThrown(e, 'db_error')
+  }
+}
+
+export async function getTopReviews(
+  limit = 30,
+  offset = 0,
+): Promise<Result<FeaturedReview[]>> {
+  if (!isSupabaseConfigured) {
+    return fail('not_configured', 'Supabase 未配置 / Supabase is not configured')
+  }
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(
+        `${REVIEW_COLUMNS},toilets!inner(id,name,name_en,voted_name,building,floor,status)`,
+      )
+      .eq('toilets.status', 'published')
+      .order('funny_score', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + Math.max(limit, 1) - 1)
+
+    if (error) return fail(error.code || 'db_error', error.message)
+    return ok(
+      ((data ?? []) as unknown as FeaturedReviewRow[])
+        .map((r) => ({ row: r, toilet: Array.isArray(r.toilets) ? r.toilets[0] : r.toilets }))
+        .filter((x): x is { row: FeaturedReviewRow; toilet: ToiletJoinRow } => Boolean(x.toilet))
+        .map(({ row, toilet }) => ({
+          ...mapReviewRow(row),
+          toilet: {
+            id: toilet.id,
+            name: toilet.name,
+            nameEn: toilet.name_en,
+            votedName: toilet.voted_name,
+            building: toilet.building,
+            floor: toilet.floor,
+          },
+        })),
+    )
   } catch (e) {
     return fromThrown(e, 'db_error')
   }
@@ -91,6 +153,34 @@ export async function getRecentReviews(limit = 20): Promise<Result<Review[]>> {
 
     if (error) return fail(error.code || 'db_error', error.message)
     return ok(((data ?? []) as ReviewRow[]).map(mapReviewRow))
+  } catch (e) {
+    return fromThrown(e, 'db_error')
+  }
+}
+
+export async function voteReviewFunny(
+  reviewId: string,
+  value: -1 | 1,
+): Promise<Result<Review | null>> {
+  if (!isSupabaseConfigured) {
+    return fail('not_configured', 'Supabase 未配置 / Supabase is not configured')
+  }
+
+  const session = await ensureSession()
+  if (session.error) return { data: null, error: session.error }
+
+  try {
+    const { error } = await supabase.rpc('vote_review_funny', {
+      p_review_id: reviewId,
+      p_value: value,
+    })
+    if (error) return fail(error.code || 'db_error', error.message)
+
+    const { data, error: readError } = await supabase
+      .rpc('review_by_id', { p_review_id: reviewId })
+      .single()
+    if (readError) return fail(readError.code || 'db_error', readError.message)
+    return ok(data ? mapReviewRow(data as ReviewRow) : null)
   } catch (e) {
     return fromThrown(e, 'db_error')
   }

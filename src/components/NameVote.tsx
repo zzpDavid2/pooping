@@ -89,6 +89,25 @@ export default function NameVote({ toiletId, fallbackName, onWinnerChange }: Nam
     await load()
   }
 
+  async function voteFallbackName() {
+    if (busy) return
+    const name = fallbackName.trim()
+    if (!name) return
+
+    setBusy(true)
+    setError(null)
+    const res = await proposeToiletName(toiletId, name)
+    setBusy(false)
+
+    if (res.error) {
+      setError(res.error.code === 'rate_limited' ? t.nameTooFast : t.voteFailed)
+      return
+    }
+    await load()
+  }
+
+  const fallbackIsListed = names.some((p) => p.name.trim() === fallbackName.trim())
+
   return (
     <section>
       <div className="mb-2 flex items-baseline justify-between">
@@ -123,11 +142,16 @@ export default function NameVote({ toiletId, fallbackName, onWinnerChange }: Nam
           </button>
         ))}
 
-        {/* 原始名字作为垫底选项，没提过名字时至少有个东西看 */}
-        {names.length === 0 && (
-          <span className="rounded-full border border-dashed border-poo-200 px-2.5 py-1 text-xs text-ink-faint">
+        {!fallbackIsListed && fallbackName.trim() && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void voteFallbackName()}
+            className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-poo-300 bg-white px-2.5 py-1 text-xs text-ink-soft hover:bg-poo-50 disabled:opacity-60"
+          >
             {fallbackName}
-          </span>
+            <span className="rounded-full bg-poo-100 px-1.5 tabular-nums text-poo-800">0</span>
+          </button>
         )}
 
         {!adding && (

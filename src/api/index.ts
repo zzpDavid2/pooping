@@ -5,13 +5,17 @@ export { ensureSession, getCurrentUser, setNickname, type CurrentUser } from './
 export {
   getNearbyToilets,
   getToiletById,
+  getTopToilets,
   createToilet,
+  voteToiletFunny,
   type NearbyOptions,
   type CreateToiletInput,
 } from './toilets'
 export {
   getReviews,
+  getTopReviews,
   getRecentReviews,
+  voteReviewFunny,
   generateReview,
   createReview,
   deleteReview,

@@ -73,40 +73,31 @@ pnpm dev
 **LLM 的 key 绝对不能加 `VITE_` 前缀** —— 那会被打进 bundle 公开出去。
 它只属于 Edge Function。
 
-### 用阿里云百炼的 DeepSeek（当前选择）
+### LLM provider
 
-服务在境内，从北京/上海调延迟低、不用翻墙，跟「先跑国内版」是一路的。
-
-1. 去[百炼控制台](https://bailian.console.aliyun.com/)开通服务，在 **API-KEY** 页面创建一个 key（`sk-` 开头）
-2. 在**模型广场**里确认要用的 DeepSeek 模型已开通
-3. 在**工作空间详情**页拿 `WorkspaceId`（拼 base_url 用；老地址也仍然可用）
+Edge Function 统一走 OpenAI-compatible `/chat/completions` 标准。OpenAI、阿里云百炼 compatible mode、OpenRouter、DeepSeek、自建网关都填同一组三个环境变量。
 
 ```bash
 # 本地：写进 supabase/functions/.env（已在 .gitignore 里）
-LLM_PROVIDER=dashscope
-DASHSCOPE_API_KEY=sk-xxxxxxxx
-DASHSCOPE_MODEL=deepseek-v3.2
-# 可选，不填就用老地址 https://dashscope.aliyuncs.com/compatible-mode/v1
-DASHSCOPE_BASE_URL=https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+LLM_API_KEY=sk-xxxxxxxx
+LLM_MODEL=gpt-4o-mini
+LLM_BASE_URL=https://api.openai.com/v1
 
 # 云端
-npx supabase secrets set LLM_PROVIDER=dashscope DASHSCOPE_API_KEY=sk-xxx DASHSCOPE_MODEL=deepseek-v3.2
+npx supabase secrets set LLM_API_KEY=sk-xxx LLM_MODEL=gpt-4o-mini LLM_BASE_URL=https://api.openai.com/v1
 ```
 
-**选模型时注意两件事：**
+阿里云百炼 compatible mode 示例：
 
-| 坑 | 说明 |
-|---|---|
-| **别用 `deepseek-r1`** | 推理模型不接受 `temperature`。而这个产品就是靠 `temperature=1.25` 出效果的，默认温度写出来的东西一本正经，不好笑就没有传播 |
-| **别用 `deepseek-v3` / `v3.1` / `r1`** | 官方公告 2026-10-10 下线，别拿它们起新项目。用 `deepseek-v3.2` 或更新的 |
+```bash
+LLM_API_KEY=sk-xxxxxxxx
+LLM_MODEL=deepseek-v3.2
+LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+```
 
-代码对 r1 系列做了保护：检测到就跳过 `temperature`（否则百炼直接报错），
-并在日志里提示换模型。思考过程走 `reasoning_content`，只取 `content`，不会漏进锐评里。
+**选模型时注意：**
 
-### 其它 provider
-
-`LLM_PROVIDER` 可选 `anthropic` / `openai` / `dashscope`，接口一致，换一个环境变量就切。
-`OPENAI_BASE_URL` 填了可以指向任何 OpenAI 兼容网关。
+推理模型如 `deepseek-r1` / OpenAI `o-series` 可能不接受 `temperature`。代码检测到会跳过 `temperature`，但这个产品靠 `temperature=1.25` 出效果，聊天模型通常更适合写好笑锐评。兼容 API 如果返回 `reasoning_content`，函数只取 `content`，不会把思考过程漏进前端。
 
 本地跑 Edge Function：
 

@@ -64,6 +64,7 @@ async function main(): Promise<void> {
     id: r.id,
     name: r.name,
     nameEn: r.name_en,
+    votedName: r.voted_name,
     lat: r.lat,
     lng: r.lng,
     distanceM: null,
@@ -88,7 +89,12 @@ async function main(): Promise<void> {
     avgClean: r.avg_clean === null ? null : Number(r.avg_clean),
     avgQueue: r.avg_queue === null ? null : Number(r.avg_queue),
     avgSmell: r.avg_smell === null ? null : Number(r.avg_smell),
+    avgPrivacy: r.avg_privacy === null ? null : Number(r.avg_privacy),
     source: r.source,
+    funnyUp: r.funny_up ?? 0,
+    funnyDown: r.funny_down ?? 0,
+    funnyScore: r.funny_score ?? 0,
+    funnyVote: 0,
   }))
 
   const outPath = resolve(ROOT, 'public/data/bootstrap.json')

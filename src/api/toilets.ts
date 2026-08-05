@@ -45,6 +45,10 @@ interface ToiletRow {
   avg_smell: number | string | null
   avg_privacy: number | string | null
   source: string | null
+  funny_up: number | null
+  funny_down: number | null
+  funny_score: number | null
+  funny_vote?: number | null
 }
 
 export function mapToiletRow(r: ToiletRow): Toilet {
@@ -79,6 +83,10 @@ export function mapToiletRow(r: ToiletRow): Toilet {
     avgSmell: numeric(r.avg_smell),
     avgPrivacy: numeric(r.avg_privacy),
     source: r.source,
+    funnyUp: r.funny_up ?? 0,
+    funnyDown: r.funny_down ?? 0,
+    funnyScore: r.funny_score ?? 0,
+    funnyVote: voteValue(r.funny_vote),
   }
 }
 
@@ -87,6 +95,10 @@ function numeric(v: number | string | null): number | null {
   if (v === null || v === undefined) return null
   const n = typeof v === 'number' ? v : Number.parseFloat(v)
   return Number.isFinite(n) ? n : null
+}
+
+function voteValue(v: number | null | undefined): -1 | 0 | 1 {
+  return v === 1 || v === -1 ? v : 0
 }
 
 export interface NearbyOptions extends LatLng {
@@ -195,6 +207,48 @@ export async function getToiletById(id: string): Promise<Result<Toilet | null>> 
     const rows = (data ?? []) as ToiletRow[]
     const first = rows[0]
     return ok(first ? mapToiletRow(first) : null)
+  } catch (e) {
+    return fromThrown(e, 'db_error')
+  }
+}
+
+export async function getTopToilets(
+  limit = 30,
+  offset = 0,
+): Promise<Result<Toilet[]>> {
+  if (!isSupabaseConfigured) {
+    return fail('not_configured', 'Supabase 未配置 / Supabase is not configured')
+  }
+  try {
+    const { data, error } = await supabase.rpc('top_toilets', {
+      p_limit: limit,
+      p_offset: offset,
+    })
+    if (error) return fail(error.code || 'db_error', error.message)
+    return ok(((data ?? []) as ToiletRow[]).map(mapToiletRow))
+  } catch (e) {
+    return fromThrown(e, 'db_error')
+  }
+}
+
+export async function voteToiletFunny(
+  toiletId: string,
+  value: -1 | 1,
+): Promise<Result<Toilet | null>> {
+  if (!isSupabaseConfigured) {
+    return fail('not_configured', 'Supabase 未配置 / Supabase is not configured')
+  }
+
+  const session = await ensureSession()
+  if (session.error) return { data: null, error: session.error }
+
+  try {
+    const { error } = await supabase.rpc('vote_toilet_funny', {
+      p_toilet_id: toiletId,
+      p_value: value,
+    })
+    if (error) return fail(error.code || 'db_error', error.message)
+    return getToiletById(toiletId)
   } catch (e) {
     return fromThrown(e, 'db_error')
   }

@@ -1,106 +1,64 @@
-// LLM 调用。三家可选，靠 LLM_PROVIDER 切：
+// LLM calls use the OpenAI-compatible chat completions API.
 //
-//   anthropic  —— Claude
-//   openai     —— OpenAI
-//   dashscope  —— 阿里云百炼（DeepSeek / Qwen），走 OpenAI 兼容模式
+// Set LLM_BASE_URL / LLM_API_KEY / LLM_MODEL for any compatible provider
+// (OpenAI, DashScope compatible mode, OpenRouter, DeepSeek, self-hosted gateways).
+// OPENAI_* and DASHSCOPE_* are accepted as legacy aliases so existing local envs
+// do not break during the migration.
 //
-// 百炼对这个产品有个额外好处：服务在境内，从北京/上海调延迟低、不用翻墙，
-// 和「先跑国内版」的阶段目标一致。
-//
-// key 只存在 Edge Function 的环境变量里，绝不进前端、绝不进仓库（CLAUDE.md 第 7 节）。
-
-export type Provider = 'anthropic' | 'openai' | 'dashscope'
+// Keys only live in Edge Function environment variables, never in frontend code.
 
 export interface LlmOptions {
   system: string
   user: string
-  /** 1.2–1.3。默认值太一本正经，出不来效果（CLAUDE.md 第 7 节） */
+  /** 1.2-1.3. The default model temperature is too polite for this product. */
   temperature: number
   maxTokens: number
 }
 
-export function resolveProvider(): Provider {
-  const raw = (Deno.env.get('LLM_PROVIDER') ?? 'anthropic').toLowerCase()
-  if (raw === 'openai') return 'openai'
-  if (raw === 'dashscope' || raw === 'bailian' || raw === 'aliyun') return 'dashscope'
-  return 'anthropic'
-}
-
-export async function callLlm(opts: LlmOptions): Promise<string> {
-  switch (resolveProvider()) {
-    case 'openai':
-      return callOpenAiCompatible(opts, {
-        baseUrl: Deno.env.get('OPENAI_BASE_URL') ?? 'https://api.openai.com/v1',
-        apiKey: Deno.env.get('OPENAI_API_KEY') ?? '',
-        model: Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini',
-        keyName: 'OPENAI_API_KEY',
-      })
-
-    case 'dashscope':
-      return callOpenAiCompatible(opts, {
-        // 百炼的 base_url 现在是按工作空间和地域分的：
-        //   https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
-        // 老的 https://dashscope.aliyuncs.com/compatible-mode/v1 也仍然可用。
-        // 两种都别写死，整个走 env（CLAUDE.md 8.5）。
-        baseUrl:
-          Deno.env.get('DASHSCOPE_BASE_URL') ??
-          'https://dashscope.aliyuncs.com/compatible-mode/v1',
-        apiKey: Deno.env.get('DASHSCOPE_API_KEY') ?? '',
-        model: Deno.env.get('DASHSCOPE_MODEL') ?? 'deepseek-v3.2',
-        keyName: 'DASHSCOPE_API_KEY',
-      })
-
-    default:
-      return callAnthropic(opts)
-  }
-}
-
-async function callAnthropic({ system, user, temperature, maxTokens }: LlmOptions): Promise<string> {
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
-
-  const model = Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-sonnet-4-5'
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: maxTokens,
-      temperature,
-      system,
-      messages: [{ role: 'user', content: user }],
-    }),
-  })
-
-  if (!res.ok) {
-    throw new Error(`anthropic ${res.status}: ${(await res.text()).slice(0, 300)}`)
-  }
-
-  const json = await res.json()
-  const blocks: unknown[] = Array.isArray(json?.content) ? json.content : []
-  return blocks
-    .map((b) => (typeof b === 'object' && b && 'text' in b ? String((b as { text: unknown }).text) : ''))
-    .join('')
-    .trim()
-}
-
-interface OpenAiCompatTarget {
+interface OpenAiCompatibleConfig {
   baseUrl: string
   apiKey: string
   model: string
-  keyName: string
+  apiKeyEnv: string
+}
+
+export async function callLlm(opts: LlmOptions): Promise<string> {
+  return callOpenAiCompatible(opts, resolveConfig())
+}
+
+function resolveConfig(): OpenAiCompatibleConfig {
+  const apiKey =
+    Deno.env.get('LLM_API_KEY') ??
+    Deno.env.get('OPENAI_API_KEY') ??
+    Deno.env.get('DASHSCOPE_API_KEY') ??
+    ''
+  const apiKeyEnv = Deno.env.get('LLM_API_KEY')
+    ? 'LLM_API_KEY'
+    : Deno.env.get('OPENAI_API_KEY')
+      ? 'OPENAI_API_KEY'
+      : 'DASHSCOPE_API_KEY'
+
+  return {
+    baseUrl:
+      Deno.env.get('LLM_BASE_URL') ??
+      Deno.env.get('OPENAI_BASE_URL') ??
+      Deno.env.get('DASHSCOPE_BASE_URL') ??
+      'https://api.openai.com/v1',
+    apiKey,
+    model:
+      Deno.env.get('LLM_MODEL') ??
+      Deno.env.get('OPENAI_MODEL') ??
+      Deno.env.get('DASHSCOPE_MODEL') ??
+      'gpt-4o-mini',
+    apiKeyEnv,
+  }
 }
 
 /**
- * 推理模型（deepseek-r1 系列、o 系列）不接受 temperature/top_p，传了会直接报错。
+ * Reasoning models (DeepSeek R1, OpenAI o-series) often reject temperature.
  *
- * 但这个产品**就是靠 temperature 1.25 出效果的** —— 默认温度写出来的东西一本正经，
- * 不好笑就没有传播，没有传播这产品就不成立。所以这类模型只是"能用"，不是好选择。
+ * The app prefers higher-temperature chat models because funny reviews are the
+ * whole point. Reasoning models can work, but tend to be flatter here.
  */
 function ignoresTemperature(model: string): boolean {
   const m = model.toLowerCase()
@@ -109,12 +67,12 @@ function ignoresTemperature(model: string): boolean {
 
 async function callOpenAiCompatible(
   { system, user, temperature, maxTokens }: LlmOptions,
-  target: OpenAiCompatTarget,
+  config: OpenAiCompatibleConfig,
 ): Promise<string> {
-  if (!target.apiKey) throw new Error(`${target.keyName} not set`)
+  if (!config.apiKey) throw new Error(`${config.apiKeyEnv} not set`)
 
   const body: Record<string, unknown> = {
-    model: target.model,
+    model: config.model,
     max_tokens: maxTokens,
     messages: [
       { role: 'system', content: system },
@@ -122,35 +80,32 @@ async function callOpenAiCompatible(
     ],
   }
 
-  if (ignoresTemperature(target.model)) {
+  if (ignoresTemperature(config.model)) {
     console.warn(
-      `${target.model} 不支持 temperature，本次按模型默认值生成。` +
-        `这类推理模型写出来的锐评偏平，建议换 deepseek-v3.2 这类对话模型。`,
+      `${config.model} does not accept temperature; using the model default for this generation.`,
     )
   } else {
     body.temperature = temperature
   }
 
-  const url = `${target.baseUrl.replace(/\/$/, '')}/chat/completions`
+  const url = `${config.baseUrl.replace(/\/$/, '')}/chat/completions`
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      authorization: `Bearer ${target.apiKey}`,
+      authorization: `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify(body),
   })
 
   if (!res.ok) {
-    throw new Error(
-      `${new URL(url).host} ${res.status}: ${(await res.text()).slice(0, 300)}`,
-    )
+    throw new Error(`${new URL(url).host} ${res.status}: ${(await res.text()).slice(0, 300)}`)
   }
 
   const json = await res.json()
   const message = json?.choices?.[0]?.message
 
-  // 推理模型会把思考过程放在 reasoning_content，正文仍在 content。
-  // 只取 content —— 思考过程绝不能出现在展示给用户的锐评里。
+  // Some compatible reasoning APIs include reasoning_content alongside content.
+  // Only user-facing content may leave the Edge Function.
   return String(message?.content ?? '').trim()
 }

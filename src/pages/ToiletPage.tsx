@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronLeft, PenLine } from 'lucide-react'
+import { ChevronLeft, PenLine, ThumbsDown, ThumbsUp } from 'lucide-react'
 
-import { getReviews, getToiletById, type Review, type Toilet } from '@/api'
+import {
+  getReviews,
+  getToiletById,
+  voteReviewFunny,
+  voteToiletFunny,
+  type Review,
+  type Toilet,
+} from '@/api'
 import FacilityWall from '@/components/FacilityWall'
 import { RatingBars } from '@/components/Ratings'
 import ReviewCard from '@/components/ReviewCard'
@@ -63,6 +70,31 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
   const address = displayAddress(toilet, locale)
   const place = displayPlace(toilet)
 
+  function handleReviewVote(review: Review, value: -1 | 1) {
+    setReviews((cur) =>
+      cur
+        .map((r) => (r.id === review.id ? applyReviewVote(r, value) : r))
+        .sort((a, b) => b.funnyScore - a.funnyScore || Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    )
+    void voteReviewFunny(review.id, value).then((res) => {
+      if (!res.data) return
+      setReviews((cur) =>
+        cur
+          .map((r) => (r.id === res.data!.id ? res.data! : r))
+          .sort((a, b) => b.funnyScore - a.funnyScore || Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+      )
+    })
+  }
+
+  function handleToiletFunnyVote(value: -1 | 1) {
+    if (!toilet) return
+    const toiletId = toilet.id
+    setToilet((cur) => (cur ? applyToiletVote(cur, value) : cur))
+    void voteToiletFunny(toiletId, value).then((res) => {
+      if (res.data) setToilet(res.data)
+    })
+  }
+
   return (
     <div className="fixed inset-0 z-30 flex flex-col overflow-hidden bg-poo-50">
       <header className="safe-top sticky top-0 z-10 flex items-center gap-2 border-b border-poo-100 bg-white/95 px-2 py-2.5 backdrop-blur">
@@ -92,12 +124,44 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
             <h3 className="mb-2 text-sm font-semibold">{t.ratings}</h3>
             <RatingBars toilet={toilet} />
           </div>
+
+          <div className="mt-4 flex items-center justify-between rounded-xl bg-poo-50 px-3 py-2">
+            <span className="text-sm font-medium text-ink-soft">{t.funnyScore}</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => handleToiletFunnyVote(1)}
+                className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm ${
+                  toilet.funnyVote === 1
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-white text-ink-soft hover:bg-emerald-50'
+                }`}
+                aria-label={t.funnyUp}
+              >
+                <ThumbsUp size={15} />
+                {toilet.funnyUp}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToiletFunnyVote(-1)}
+                className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm ${
+                  toilet.funnyVote === -1
+                    ? 'bg-rose-100 text-rose-800'
+                    : 'bg-white text-ink-soft hover:bg-rose-50'
+                }`}
+                aria-label={t.funnyDown}
+              >
+                <ThumbsDown size={15} />
+                {toilet.funnyDown}
+              </button>
+            </div>
+          </div>
         </section>
 
         <section className="card">
           <NameVote
             toiletId={toilet.id}
-            fallbackName={displayName(toilet, locale)}
+            fallbackName={originalDisplayName(toilet, locale)}
             onWinnerChange={(name) =>
               setToilet((cur) => (cur && cur.votedName !== name ? { ...cur, votedName: name } : cur))
             }
@@ -120,7 +184,9 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
               <p className="text-sm text-ink-soft">{t.beFirst}</p>
             </div>
           ) : (
-            reviews.map((r) => <ReviewCard key={r.id} review={r} onShare={setSharing} />)
+            reviews.map((r) => (
+              <ReviewCard key={r.id} review={r} onShare={setSharing} onVote={handleReviewVote} />
+            ))
           )}
         </section>
       </div>
@@ -159,6 +225,35 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
       )}
     </div>
   )
+}
+
+function applyReviewVote(review: Review, value: -1 | 1): Review {
+  if (review.funnyVote === value) return review
+  const next = { ...review }
+  if (review.funnyVote === 1) next.funnyUp -= 1
+  if (review.funnyVote === -1) next.funnyDown -= 1
+  if (value === 1) next.funnyUp += 1
+  if (value === -1) next.funnyDown += 1
+  next.funnyVote = value
+  next.funnyScore = next.funnyUp - next.funnyDown
+  return next
+}
+
+function applyToiletVote(toilet: Toilet, value: -1 | 1): Toilet {
+  if (toilet.funnyVote === value) return toilet
+  const next = { ...toilet }
+  if (toilet.funnyVote === 1) next.funnyUp -= 1
+  if (toilet.funnyVote === -1) next.funnyDown -= 1
+  if (value === 1) next.funnyUp += 1
+  if (value === -1) next.funnyDown += 1
+  next.funnyVote = value
+  next.funnyScore = next.funnyUp - next.funnyDown
+  return next
+}
+
+function originalDisplayName(toilet: Toilet, locale: 'zh' | 'en'): string {
+  if (locale === 'en') return toilet.nameEn?.trim() || toilet.name
+  return toilet.name?.trim() || toilet.nameEn || ''
 }
 
 /** 加载中和找不到时也要盖住地图，否则会透出下面那张图，看着像没跳转成功。 */
