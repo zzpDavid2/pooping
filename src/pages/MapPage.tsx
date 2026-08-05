@@ -83,6 +83,9 @@ export default function MapPage() {
   const [featuredLoading, setFeaturedLoading] = useState(false)
   const [hasMoreFeaturedToilets, setHasMoreFeaturedToilets] = useState(true)
   const [hasMoreFeaturedReviews, setHasMoreFeaturedReviews] = useState(true)
+  const [viewportHeight, setViewportHeight] = useState(
+    () => (typeof window === 'undefined' ? 800 : window.innerHeight),
+  )
   /** 查询半径，跟着地图视野走 */
   const [radiusM, setRadiusM] = useState(1500)
 
@@ -169,6 +172,7 @@ export default function MapPage() {
   const selected = toilets.find((x) => x.id === selectedId) ?? null
   const sheetMinVh = SHEET_MIN_VH[mode]
   const sheetHeightVh = sheetMinVh + (SHEET_MAX_VH - sheetMinVh) * sheetProgress
+  const mapBottomInsetPx = Math.round((sheetHeightVh / 100) * viewportHeight)
   const hasMoreFeatured = hasMoreFeaturedToilets || hasMoreFeaturedReviews
 
   async function loadMoreFeatured() {
@@ -213,6 +217,20 @@ export default function MapPage() {
       setFeaturedLoading(false)
     }
   }
+
+  useEffect(() => {
+    function syncViewportHeight() {
+      setViewportHeight(window.innerHeight)
+    }
+
+    syncViewportHeight()
+    window.addEventListener('resize', syncViewportHeight)
+    window.visualViewport?.addEventListener('resize', syncViewportHeight)
+    return () => {
+      window.removeEventListener('resize', syncViewportHeight)
+      window.visualViewport?.removeEventListener('resize', syncViewportHeight)
+    }
+  }, [])
 
   function handleMarkerClick(id: string) {
     if (addMode !== 'off') return
@@ -453,6 +471,7 @@ export default function MapPage() {
               onSelect={handleMarkerClick}
               onMoveEnd={handleMoveEnd}
               handleRef={mapRef}
+              bottomInsetPx={mapBottomInsetPx}
               className="absolute inset-0"
             />
           </Suspense>

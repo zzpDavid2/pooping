@@ -16,6 +16,8 @@ interface MapViewProps {
   onMoveEnd?: (center: LatLng, zoom: number, radiusM: number) => void
   /** 父组件要主动推地图（比如「回到我的位置」）时挂这个 ref */
   handleRef?: MutableRefObject<MapHandle | null>
+  /** 底部 UI 覆盖地图的高度。传给 MapLibre camera padding，让可见区域居中。 */
+  bottomInsetPx?: number
   className?: string
 }
 
@@ -29,6 +31,7 @@ export default function MapView({
   onSelect,
   onMoveEnd,
   handleRef: externalHandleRef,
+  bottomInsetPx = 0,
   className,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -87,6 +90,10 @@ export default function MapView({
   useEffect(() => {
     handleRef.current?.setUserLocation(userPosition)
   }, [userPosition])
+
+  useEffect(() => {
+    handleRef.current?.setPadding({ bottom: bottomInsetPx })
+  }, [bottomInsetPx])
 
   return <div ref={containerRef} className={className} />
 }

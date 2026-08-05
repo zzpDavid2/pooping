@@ -37,6 +37,7 @@ export interface MapHandle {
   setMarkers(markers: MapMarker[]): void
   setSelected(id: string | null): void
   setUserLocation(p: LatLng | null): void
+  setPadding(padding: { top?: number; right?: number; bottom?: number; left?: number }): void
   moveTo(p: LatLng, zoom?: number): void
   fitBounds(points: LatLng[], paddingPx?: number): void
   getCenter(): LatLng
@@ -153,6 +154,7 @@ export function createMap(opts: CreateMapOptions): MapHandle {
   let selectedId: string | null = null
   let pendingToilets: MapMarker[] = []
   let pendingUser: LatLng | null = null
+  let cameraPadding = { top: 0, right: 0, bottom: 0, left: 0 }
 
   function radiusMeters(): number {
     const b = map.getBounds()
@@ -306,10 +308,26 @@ export function createMap(opts: CreateMapOptions): MapHandle {
       )
     },
 
+    setPadding(padding) {
+      if (destroyed) return
+      cameraPadding = {
+        top: padding.top ?? 0,
+        right: padding.right ?? 0,
+        bottom: padding.bottom ?? 0,
+        left: padding.left ?? 0,
+      }
+      map.easeTo({ padding: cameraPadding, duration: 160 })
+    },
+
     moveTo(p, zoom) {
       if (destroyed) return
       const pos = toDisplay(p)
-      map.easeTo({ center: [pos.lng, pos.lat], zoom: zoom ?? map.getZoom(), duration: 420 })
+      map.easeTo({
+        center: [pos.lng, pos.lat],
+        zoom: zoom ?? map.getZoom(),
+        padding: cameraPadding,
+        duration: 420,
+      })
     },
 
     fitBounds(points, paddingPx = 60) {
@@ -320,7 +338,16 @@ export function createMap(opts: CreateMapOptions): MapHandle {
         const d = toDisplay(p)
         bounds.extend([d.lng, d.lat])
       }
-      map.fitBounds(bounds, { padding: paddingPx, maxZoom: 17, duration: 420 })
+      map.fitBounds(bounds, {
+        padding: {
+          top: cameraPadding.top + paddingPx,
+          right: cameraPadding.right + paddingPx,
+          bottom: cameraPadding.bottom + paddingPx,
+          left: cameraPadding.left + paddingPx,
+        },
+        maxZoom: 17,
+        duration: 420,
+      })
     },
 
     getCenter() {
