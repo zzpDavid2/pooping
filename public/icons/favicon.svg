@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#c07540"/>
+  <!-- 卷纸：比马桶好认，缩到 16px 也还是个圆环 -->
+  <circle cx="256" cy="256" r="150" fill="#fdf8f3"/>
+  <circle cx="256" cy="256" r="58" fill="#c07540"/>
+  <path d="M256 106a150 150 0 0 1 0 300" fill="none" stroke="#edd2b0" stroke-width="26" stroke-linecap="round"/>
+</svg>

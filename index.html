@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
+    />
+    <meta name="theme-color" content="#c07540" />
+    <meta name="description" content="厕评 — 厕所版大众点评。附近的厕所，和别人写的锐评。" />
+
+    <!-- iOS 加到主屏后按 App 显示，省掉 App Store 那一整套 -->
+    <!-- 标准名新旧都留：Chrome 已经把 apple- 前缀标记为废弃，
+         但 iOS Safari 目前仍然只认那个，少一个都会有平台掉链子 -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="厕评" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+
+    <!--
+      零外部 CDN（CLAUDE.md 3.3）。这个文件里永远不该出现第三方 <link> 或 <script>。
+      字体走系统字体栈，见 tailwind.config.js。
+    -->
+    <title>厕评 · pooping</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

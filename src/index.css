@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-poo-50 text-ink antialiased;
+    /* iOS 上防止橡皮筋把地图页整个拽走 */
+    overscroll-behavior: none;
+  }
+
+  /* 刘海屏安全区，PWA 全屏模式下必须的 */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@layer components {
+  /* 地图点位现在是 GeoJSON 图层（见 src/map/adapter.ts），
+     不再有 DOM marker 元素，所以这里也不需要它们的样式了。 */
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-poo-200 bg-white
+           px-3 py-1.5 text-sm text-ink-soft transition-colors;
+  }
+  .chip--on {
+    @apply border-poo-600 bg-poo-600 text-white;
+  }
+
+  .card {
+    @apply rounded-2xl border border-poo-100 bg-white p-4 shadow-sm;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn--primary {
+    @apply bg-poo-600 text-white hover:bg-poo-700;
+  }
+  .btn--ghost {
+    @apply border border-poo-200 bg-white text-ink-soft hover:bg-poo-50;
+  }
+
+  /*
+    MapLibre 自己的 .maplibregl-map 里写了 position: relative。
+    它的 CSS 现在是随 MapView 懒加载的**单独一张表**，比 index.css 后加载，
+    同样是单类选择器的话它会赢 —— 于是我们加在容器上的 .absolute 失效，
+    inset-0 跟着失效，地图根节点高度塌成 0，画面一片空白（canvas 还在，尺寸是旧的）。
+
+    用两个类提高优先级，跟加载顺序无关地把定位抢回来。
+  */
+  .maplibregl-map.absolute {
+    position: absolute;
+  }
+
+  /* 地图库自带控件的配色对不上，压一下 */
+  .maplibregl-ctrl-attrib {
+    @apply text-[10px];
+  }
+  .maplibregl-ctrl-group button {
+    @apply rounded-lg;
+  }
+}
