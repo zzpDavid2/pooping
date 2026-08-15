@@ -4,6 +4,8 @@
 
 > 其他编码代理请先读 `AGENTS.md`。两份文件共享同一套项目规则：`CLAUDE.md` 是完整产品/架构说明，`AGENTS.md` 是跨代理速查版。
 
+@CLAUDE.local.md
+
 ---
 
 ## 1. 项目是什么
