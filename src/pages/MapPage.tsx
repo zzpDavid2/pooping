@@ -1,14 +1,16 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowUpDown, Crosshair, Loader2, Plus, ThumbsDown, ThumbsUp, X } from 'lucide-react'
+import { ArrowUpDown, Crosshair, Loader2, Plus, Search, ThumbsDown, ThumbsUp, X } from 'lucide-react'
 
 import {
   getTopReviews,
   getTopToilets,
   isSupabaseConfigured,
+  searchAddress,
   voteReviewFunny,
   voteToiletFunny,
   type FeaturedReview,
+  type GeocodeResult,
   type LatLng,
   type Review,
   type Toilet,
@@ -91,6 +93,10 @@ export default function MapPage() {
 
   const [addMode, setAddMode] = useState<AddMode>('off')
   const [pinLocation, setPinLocation] = useState<LatLng | null>(null)
+  const [addressQuery, setAddressQuery] = useState('')
+  const [addressResults, setAddressResults] = useState<GeocodeResult[]>([])
+  const [addressBusy, setAddressBusy] = useState(false)
+  const [addressError, setAddressError] = useState<string | null>(null)
   const [sharing, setSharing] = useState<{ review: Review; toiletName: string } | null>(null)
 
   const mapRef = useRef<MapHandle | null>(null)
@@ -303,6 +309,9 @@ export default function MapPage() {
 
   function startPlacing() {
     setSelectedId(null)
+    setAddressQuery('')
+    setAddressResults([])
+    setAddressError(null)
     setAddMode('placing')
   }
 
@@ -312,6 +321,30 @@ export default function MapPage() {
     if (!center) return
     setPinLocation(center)
     setAddMode('form')
+  }
+
+  async function handleAddressSearch() {
+    const query = addressQuery.trim()
+    if (!query) return
+
+    setAddressBusy(true)
+    setAddressError(null)
+    const near = mapRef.current?.getCenter() ?? queryCenter
+    const res = await searchAddress(query, region, near)
+    setAddressBusy(false)
+
+    if (res.error) {
+      setAddressError(t.pinSearchFailed)
+      return
+    }
+    setAddressResults(res.data)
+    if (res.data.length === 0) setAddressError(t.pinSearchEmpty)
+  }
+
+  function handleAddressPick(result: GeocodeResult) {
+    mapRef.current?.moveTo(result, 17)
+    setAddressResults([])
+    setAddressQuery(result.label)
   }
 
   function handleSheetPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
@@ -516,6 +549,57 @@ export default function MapPage() {
 
         {addMode === 'placing' ? (
           <div className="safe-bottom absolute inset-x-0 bottom-0 z-10 border-t border-poo-100 bg-white px-4 py-3">
+            <div className="mb-2.5 flex gap-2">
+              <input
+                id="addToiletAddressSearch"
+                name="addToiletAddressSearch"
+                autoComplete="off"
+                value={addressQuery}
+                onChange={(e) => setAddressQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    void handleAddressSearch()
+                  }
+                }}
+                placeholder={t.pinSearchPlaceholder}
+                className="flex-1 rounded-xl border border-poo-200 px-3 py-2 text-sm outline-none focus:border-poo-500"
+              />
+              <button
+                type="button"
+                onClick={() => void handleAddressSearch()}
+                disabled={addressBusy || !addressQuery.trim()}
+                aria-label={t.pinSearchButton}
+                className="btn btn--ghost px-3"
+              >
+                {addressBusy ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Search size={16} />
+                )}
+              </button>
+            </div>
+
+            {addressResults.length > 0 && (
+              <ul className="mb-2.5 max-h-40 divide-y divide-poo-100 overflow-y-auto rounded-xl border border-poo-100">
+                {addressResults.map((r, i) => (
+                  <li key={`${r.lat},${r.lng},${i}`}>
+                    <button
+                      type="button"
+                      onClick={() => handleAddressPick(r)}
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-poo-50"
+                    >
+                      {r.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {addressError && (
+              <p className="mb-2.5 text-center text-xs text-rose-600">{addressError}</p>
+            )}
+
             <p className="mb-2.5 text-center text-sm text-ink-soft">{t.pinHint}</p>
             <div className="flex gap-2">
               <button type="button" onClick={() => setAddMode('off')} className="btn btn--ghost">
