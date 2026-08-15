@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowUpDown, Crosshair, Loader2, Plus, ThumbsDown, ThumbsUp, X } from 'lucide-react'
+import { ArrowUpDown, Crosshair, Loader2, Plus, Search, ThumbsDown, ThumbsUp, X } from 'lucide-react'
 
 import {
   getTopReviews,
@@ -14,6 +14,7 @@ import {
   type Toilet,
   type ToiletFilters,
 } from '@/api'
+import AddressSearchBox from '@/components/AddressSearchBox'
 import AddToiletSheet from '@/components/AddToiletSheet'
 import FilterBar from '@/components/FilterBar'
 import ReviewCard from '@/components/ReviewCard'
@@ -91,6 +92,7 @@ export default function MapPage() {
 
   const [addMode, setAddMode] = useState<AddMode>('off')
   const [pinLocation, setPinLocation] = useState<LatLng | null>(null)
+  const [browseSearchOpen, setBrowseSearchOpen] = useState(false)
   const [sharing, setSharing] = useState<{ review: Review; toiletName: string } | null>(null)
 
   const mapRef = useRef<MapHandle | null>(null)
@@ -131,6 +133,7 @@ export default function MapPage() {
     setRegionState(next)
     setSelectedId(null)
     setAddMode('off')
+    setBrowseSearchOpen(false)
     setQueryCenter(defaultCenterFor(next))
   }, [])
 
@@ -303,6 +306,7 @@ export default function MapPage() {
 
   function startPlacing() {
     setSelectedId(null)
+    setBrowseSearchOpen(false)
     setAddMode('placing')
   }
 
@@ -491,31 +495,65 @@ export default function MapPage() {
         )}
 
         {addMode === 'off' && (
-          <div
-            className="absolute left-3 z-[5] flex flex-col items-start gap-3 transition-[bottom] duration-200 ease-out"
-            style={{ bottom: `calc(${sheetMinVh}vh + 1rem)` }}
-          >
-            <button
-              type="button"
-              onClick={startPlacing}
-              className="flex items-center gap-1.5 rounded-xl bg-poo-600 px-3 py-2.5 text-sm font-medium text-white shadow-lg"
+          <>
+            <div
+              className="absolute left-3 z-[5] flex flex-col items-start gap-3 transition-[bottom] duration-200 ease-out"
+              style={{ bottom: `calc(${sheetMinVh}vh + 1rem)` }}
             >
-              <Plus size={16} />
-              {t.addToilet}
-            </button>
-            <button
-              type="button"
-              onClick={recenter}
-              className="rounded-xl bg-white p-2.5 shadow-lg"
-              aria-label={t.recenter}
-            >
-              <Crosshair size={18} className={status === 'locating' ? 'animate-pulse' : ''} />
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={startPlacing}
+                className="flex items-center gap-1.5 rounded-xl bg-poo-600 px-3 py-2.5 text-sm font-medium text-white shadow-lg"
+              >
+                <Plus size={16} />
+                {t.addToilet}
+              </button>
+              <button
+                type="button"
+                onClick={recenter}
+                className="rounded-xl bg-white p-2.5 shadow-lg"
+                aria-label={t.recenter}
+              >
+                <Crosshair size={18} className={status === 'locating' ? 'animate-pulse' : ''} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setBrowseSearchOpen((v) => !v)}
+                aria-pressed={browseSearchOpen}
+                className={`rounded-xl p-2.5 shadow-lg ${
+                  browseSearchOpen ? 'bg-poo-600 text-white' : 'bg-white'
+                }`}
+                aria-label={t.addressSearchButton}
+              >
+                <Search size={18} />
+              </button>
+            </div>
+
+            {browseSearchOpen && (
+              <div className="safe-top absolute inset-x-3 top-16 z-20">
+                <AddressSearchBox
+                  region={region}
+                  near={mapRef.current?.getCenter() ?? queryCenter}
+                  onPick={(r) => {
+                    mapRef.current?.moveTo(r, 16)
+                    setQueryCenter(r)
+                    setBrowseSearchOpen(false)
+                  }}
+                />
+              </div>
+            )}
+          </>
         )}
 
         {addMode === 'placing' ? (
           <div className="safe-bottom absolute inset-x-0 bottom-0 z-10 border-t border-poo-100 bg-white px-4 py-3">
+            <AddressSearchBox
+              region={region}
+              near={mapRef.current?.getCenter() ?? queryCenter}
+              onPick={(r) => mapRef.current?.moveTo(r, 17)}
+              className="mb-2.5"
+            />
+
             <p className="mb-2.5 text-center text-sm text-ink-soft">{t.pinHint}</p>
             <div className="flex gap-2">
               <button type="button" onClick={() => setAddMode('off')} className="btn btn--ghost">

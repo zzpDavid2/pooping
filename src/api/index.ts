@@ -24,6 +24,7 @@ export {
   type CreateReviewInput,
 } from './reviews'
 export { reportReview } from './reports'
+export { searchAddress, type GeocodeResult } from './geocode'
 export {
   getToiletNames,
   voteToiletName,
