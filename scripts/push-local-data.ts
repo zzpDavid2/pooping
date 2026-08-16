@@ -59,18 +59,25 @@ async function upsertChunks(
   table: string,
   rows: Row[],
   onConflict?: string,
-): Promise<void> {
+  select?: string,
+): Promise<Row[]> {
+  const out: Row[] = []
   for (let i = 0; i < rows.length; i += PAGE_SIZE) {
     const chunk = rows.slice(i, i + PAGE_SIZE)
-    const { error } = await supabase
-      .from(table)
-      .upsert(chunk, onConflict ? { onConflict } : undefined)
+    const query = supabase.from(table).upsert(chunk, onConflict ? { onConflict } : undefined)
+    const { data, error } = select ? await query.select(select) : await query
 
     if (error) throw new Error(`${table}: ${error.message}`)
+    if (data) out.push(...(data as unknown as Row[]))
     console.log(`  ${table}: ${Math.min(i + chunk.length, rows.length)}/${rows.length}`)
   }
+  return out
 }
 
+/**
+ * 聚合字段不跟着搬：它们由远端自己的评价算出来，本地的数字搬过去只会覆盖成错的。
+ * created_by 指向本地 auth.users，远端没有这些用户，只能置空。
+ */
 function prepareToilet(row: Row): Row {
   return {
     ...row,
@@ -84,6 +91,16 @@ function prepareToilet(row: Row): Row {
     funny_down: 0,
     funny_score: 0,
   }
+}
+
+/**
+ * OSM 点位在远端可能已经存在（之前导入过），但 id 不一样、osm_id 一样。
+ * 必须按 osm_id 判重，而且**不能带上本地 id** —— 覆盖远端 id 会把已经挂在
+ * 那个 id 上的评价、密码全部变成孤儿。
+ */
+function stripId(row: Row): Row {
+  const { id: _id, ...rest } = row
+  return rest
 }
 
 function stripNullableOwner(row: Row): Row {
@@ -101,21 +118,52 @@ async function main(): Promise<void> {
 
   const toilets = await readAll<Row>(local, 'toilets')
   console.log(`toilets: ${toilets.length}`)
-  await upsertChunks(remote, 'toilets', toilets.map(prepareToilet))
+
+  // OSM 点位和用户自己报的点位判重方式不一样：
+  // 前者认 osm_id（远端可能已经导过同一批），后者只有 id 能认。
+  const osmToilets = toilets.filter((t) => t.osm_id !== null && t.osm_id !== undefined)
+  const ugcToilets = toilets.filter((t) => t.osm_id === null || t.osm_id === undefined)
+
+  /** 本地 id → 远端 id。OSM 点位在远端可能是另一个 id，后面的外键都要走这张表翻译。 */
+  const idMap = new Map<string, string>()
+
+  if (osmToilets.length > 0) {
+    console.log(`  osm: ${osmToilets.length}`)
+    const saved = await upsertChunks(
+      remote,
+      'toilets',
+      osmToilets.map((t) => stripId(prepareToilet(t))),
+      'osm_id',
+      'id,osm_id',
+    )
+    const remoteByOsmId = new Map(saved.map((r) => [String(r.osm_id), String(r.id)]))
+    for (const t of osmToilets) {
+      const remoteId = remoteByOsmId.get(String(t.osm_id))
+      if (remoteId) idMap.set(String(t.id), remoteId)
+    }
+  }
+
+  if (ugcToilets.length > 0) {
+    console.log(`  ugc: ${ugcToilets.length}`)
+    await upsertChunks(remote, 'toilets', ugcToilets.map(prepareToilet))
+    for (const t of ugcToilets) idMap.set(String(t.id), String(t.id))
+  }
 
   const proposals = await readAll<Row>(local, 'toilet_name_proposals')
-  console.log(`toilet_name_proposals: ${proposals.length}`)
-  await upsertChunks(
-    remote,
-    'toilet_name_proposals',
-    proposals.map(stripNullableOwner),
-    'toilet_id,name',
-  )
+  // 翻译成远端 id；翻译不出来的（理论上不该有）直接跳过，别写坏数据
+  const remappedProposals: Row[] = []
+  for (const p of proposals) {
+    const remoteId = idMap.get(String(p.toilet_id))
+    if (remoteId) remappedProposals.push({ ...stripNullableOwner(p), toilet_id: remoteId })
+  }
+
+  console.log(`toilet_name_proposals: ${remappedProposals.length}`)
+  await upsertChunks(remote, 'toilet_name_proposals', remappedProposals, 'toilet_id,name')
 
   console.log('Refreshing voted names on remote')
-  for (const toilet of toilets) {
-    const { error } = await remote.rpc('refresh_voted_name', { p_toilet_id: toilet.id })
-    if (error) throw new Error(`refresh_voted_name ${String(toilet.id)}: ${error.message}`)
+  for (const remoteId of new Set(idMap.values())) {
+    const { error } = await remote.rpc('refresh_voted_name', { p_toilet_id: remoteId })
+    if (error) throw new Error(`refresh_voted_name ${remoteId}: ${error.message}`)
   }
 
   console.log('\nDone. Reviews and votes were not copied; run pnpm seed:reviews against remote if needed.')
