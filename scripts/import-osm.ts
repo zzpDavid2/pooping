@@ -123,7 +123,23 @@ function mapSeatType(tags: Record<string, string>): string | null {
   return null
 }
 
+/**
+ * 场所类型。先看这个点本身是什么地方（商场、餐饮、车站……），
+ * 这类标签比"厕所本身的 access 标签"更准——后者是给独立厕所点用的兜底逻辑，
+ * 商场/酒店这种从 toilets=yes 拿到的点，主标签本来就说明了自己是什么。
+ *
+ * Category 枚举里没有"酒店"，酒店暂时落进 other，不为了这一个类型改数据库约束。
+ */
 function mapCategory(tags: Record<string, string>): string {
+  if (tags['shop'] === 'mall' || tags['shop'] === 'department_store') return 'mall'
+  if (['restaurant', 'cafe', 'fast_food', 'bar', 'pub'].includes(tags['amenity'] ?? '')) {
+    return 'restaurant'
+  }
+  if (tags['railway'] || tags['aeroway'] || tags['amenity'] === 'bus_station') return 'transit'
+  if (['university', 'college', 'school'].includes(tags['amenity'] ?? '')) return 'campus'
+  if (tags['leisure'] === 'park') return 'park'
+  if (tags['office']) return 'office'
+
   const access = tags['access']
   if (access === 'customers') return 'restaurant'
   if (tags['building'] || tags['indoor'] === 'yes') return 'other'
@@ -139,6 +155,14 @@ function mapCategory(tags: Record<string, string>): string {
  * 这不是 bug，是数据现状。能区分它们的是距离和评价 —— 而评价正是这个产品的护城河。
  * 这里只做力所能及的事：有 ref（公厕编号）或 operator 就拼上去，多少能分出个前后。
  */
+// toilet_name_proposals 表把名字长度卡在 40 字（含）以内（见 migration）。
+// OSM 上偶尔有人把中英文名挤进同一个 name 标签，一条超长记录不该拖累整批导入。
+const MAX_NAME_LEN = 40
+
+function clampName(s: string): string {
+  return s.length > MAX_NAME_LEN ? `${s.slice(0, MAX_NAME_LEN - 1)}…` : s
+}
+
 function buildName(
   tags: Record<string, string>,
 ): { name: string; nameEn: string | null } {
@@ -146,7 +170,7 @@ function buildName(
   const en = tags['name:en']?.trim()
 
   if (zh || en) {
-    return { name: zh || en!, nameEn: en || null }
+    return { name: clampName(zh || en!), nameEn: en ? clampName(en) : null }
   }
 
   // 没名字：用管理方兜底。ref 多数是十几位的政府编号，
@@ -166,11 +190,20 @@ async function fetchOverpass(bbox: Bbox): Promise<OsmElement[]> {
   const area = `${south},${west},${north},${east}`
 
   // way / relation 也要：不少厕所是按面画的，只查 node 会漏掉一大半
+  //
+  // 两路数据源：
+  // 1. amenity=toilets —— 专门画出来的厕所点
+  // 2. toilets=yes —— 打在酒店、商场等地点本身上的"这儿有厕所"标注。
+  //    只认这个明确标签，不会因为"这是个商场"就猜它有厕所（CLAUDE.md：不编造未提供的事实）。
+  //    国内愿意打这个标签的人不多，能导入的数量本来就有限，属于数据源覆盖问题。
   const query = `[out:json][timeout:90];
 (
   node["amenity"="toilets"](${area});
   way["amenity"="toilets"](${area});
   relation["amenity"="toilets"](${area});
+  node["toilets"="yes"](${area});
+  way["toilets"="yes"](${area});
+  relation["toilets"="yes"](${area});
 );
 out center tags;`
 

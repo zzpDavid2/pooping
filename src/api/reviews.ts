@@ -325,3 +325,41 @@ export async function deleteReview(id: string): Promise<Result<true>> {
     return fromThrown(e, 'db_error')
   }
 }
+
+export interface ReviewStats {
+  aiCount: number
+  manualCount: number
+}
+
+/**
+ * 我的战绩：AI 生成 / 手写评论各写了多少条。
+ * 两条 count 查询并发，head:true 只要总数不要行数据，比拉全部再数快得多。
+ */
+export async function getMyReviewStats(): Promise<Result<ReviewStats>> {
+  if (!isSupabaseConfigured) return ok({ aiCount: 0, manualCount: 0 })
+
+  const session = await ensureSession()
+  if (session.error) return { data: null, error: session.error }
+
+  try {
+    const [ai, manual] = await Promise.all([
+      supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', session.data.id)
+        .eq('is_ai', true),
+      supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', session.data.id)
+        .eq('is_ai', false),
+    ])
+
+    if (ai.error) return fail(ai.error.code || 'db_error', ai.error.message)
+    if (manual.error) return fail(manual.error.code || 'db_error', manual.error.message)
+
+    return ok({ aiCount: ai.count ?? 0, manualCount: manual.count ?? 0 })
+  } catch (e) {
+    return fromThrown(e, 'db_error')
+  }
+}

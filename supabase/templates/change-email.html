@@ -1,0 +1,34 @@
+<div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #1a1a1a;">
+  <p style="font-size: 28px; margin: 0 0 4px;">💩</p>
+
+  <h2 style="margin: 0 0 12px;">你的验证码来啦</h2>
+  <p style="margin: 0 0 16px; line-height: 1.6;">
+    关键时刻验证码可不能掉链子——跟找厕所一个道理，越急越不能等。
+  </p>
+  <p style="font-size: 30px; font-weight: 700; letter-spacing: 6px; margin: 0 0 16px; text-align: center; background: #fdf1e8; border-radius: 12px; padding: 16px;">
+    {{ .Token }}
+  </p>
+  <p style="margin: 0 0 24px; line-height: 1.6;">
+    10 分钟内把这串数字填进 App，你的战绩就正式存进账号里了，换手机也找得回来。
+    嫌打字麻烦也行，直接点这个链接：<a href="{{ .ConfirmationURL }}" style="color: #b45309;">确认邮箱</a>
+  </p>
+
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+
+  <h2 style="margin: 0 0 12px;">Your verification code</h2>
+  <p style="margin: 0 0 16px; line-height: 1.6;">
+    Don't let this code go missing — like finding a bathroom when you really need one, timing is everything.
+  </p>
+  <p style="font-size: 30px; font-weight: 700; letter-spacing: 6px; margin: 0 0 16px; text-align: center; background: #fdf1e8; border-radius: 12px; padding: 16px;">
+    {{ .Token }}
+  </p>
+  <p style="margin: 0 0 24px; line-height: 1.6;">
+    Enter it in the app within 10 minutes to lock in your stats for good — they'll follow you to any device.
+    Or just click: <a href="{{ .ConfirmationURL }}" style="color: #b45309;">Confirm email</a>
+  </p>
+
+  <p style="color: #999; font-size: 12px; margin-top: 32px;">
+    厕评 pooping · 不是你本人操作的话，忽略这封邮件就行<br>
+    Didn't request this? You can safely ignore this email.
+  </p>
+</div>

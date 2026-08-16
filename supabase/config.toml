@@ -36,9 +36,22 @@ enable_anonymous_sign_ins = true
 
 [auth.email]
 enable_signup = true
-enable_confirmations = false
+# 之前是 false（本地测试图快，直接跳过确认）。加了邮箱验证码登录之后改成 true，
+# 让本地也走一遍真实的"发验证码 → 用户输入确认"流程，跟云端行为对齐，不然验证码
+# 这一步只有上线后才第一次被真实测到。
+enable_confirmations = true
 
 # 不接 Google / Apple 登录 —— 国内直接死（CLAUDE.md 8.1）
+
+# 中英双语、带"厕评"调性的验证码文案，源文件在 supabase/templates/。
+# 云端 Dashboard 那边的模板要手动同步一份，Supabase 目前没有本地/云端模板互通的机制。
+[auth.email.template.email_change]
+subject = "厕评 · 你的验证码来啦 💩 / Your verification code"
+content_path = "./supabase/templates/change-email.html"
+
+[auth.email.template.magic_link]
+subject = "厕评 · 欢迎回来 🚽 / Welcome back"
+content_path = "./supabase/templates/magic-link.html"
 
 [analytics]
 enabled = false

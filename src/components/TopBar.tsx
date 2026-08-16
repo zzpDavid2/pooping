@@ -1,5 +1,7 @@
-import { Globe, Languages } from 'lucide-react'
+import { useState } from 'react'
+import { CircleUserRound, Globe, Languages } from 'lucide-react'
 
+import AccountSheet from '@/components/AccountSheet'
 import { useI18n } from '@/i18n/useI18n'
 // 同样绕开桶文件，别把地图库拉进首屏（见 src/map/index.ts）
 import { setRegion, type Region } from '@/map/region'
@@ -10,13 +12,14 @@ interface TopBarProps {
 }
 
 /**
- * 语言和地图版本的切换入口。
+ * 语言、地图版本、账号的入口。
  *
  * 地图版本放在最外层是刻意的：在北京上海实测时，第一件要确认的事就是
  * 「现在用的是不是高德底图、点位有没有偏」，切换必须一步到位，不能埋进二级菜单。
  */
 export default function TopBar({ region, onRegionChange }: TopBarProps) {
   const { t, locale, toggleLocale } = useI18n()
+  const [accountOpen, setAccountOpen] = useState(false)
 
   function switchRegion(next: Region) {
     if (next === region) return
@@ -75,8 +78,23 @@ export default function TopBar({ region, onRegionChange }: TopBarProps) {
             <Languages size={13} className="mr-1 inline" />
             {locale === 'zh' ? 'EN' : '中'}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setAccountOpen(true)}
+            className="rounded-xl bg-white/95 p-1.5 shadow-sm backdrop-blur"
+            aria-label={t.account}
+          >
+            <CircleUserRound size={18} />
+          </button>
         </div>
       </div>
+
+      {accountOpen && (
+        <div className="pointer-events-auto">
+          <AccountSheet onClose={() => setAccountOpen(false)} />
+        </div>
+      )}
     </header>
   )
 }
