@@ -41,6 +41,14 @@ export interface MapHandle {
   moveTo(p: LatLng, zoom?: number): void
   fitBounds(points: LatLng[], paddingPx?: number): void
   getCenter(): LatLng
+  /**
+   * 屏幕坐标（viewport 坐标系，即 getBoundingClientRect 那一套）→ WGS-84。
+   *
+   * 存在的理由：getCenter() 返回的是**相机中心**，而相机带着 bottom padding
+   * （底部面板盖住了地图），它在屏幕上的位置比容器正中间高一大截。
+   * 想按"屏幕上某个东西所指的位置"取点，必须走这个方法，不能用 getCenter()。
+   */
+  unprojectClientPoint(point: { x: number; y: number }): LatLng
   getZoom(): number
   /** 当前视野半径（米）：中心到视口角落的距离。查询半径要跟着它走。 */
   getRadiusMeters(): number
@@ -353,6 +361,12 @@ export function createMap(opts: CreateMapOptions): MapHandle {
     getCenter() {
       const c = map.getCenter()
       return toWgs({ lat: c.lat, lng: c.lng })
+    },
+
+    unprojectClientPoint(point) {
+      const rect = opts.container.getBoundingClientRect()
+      const ll = map.unproject([point.x - rect.left, point.y - rect.top])
+      return toWgs({ lat: ll.lat, lng: ll.lng })
     },
 
     getZoom: () => map.getZoom(),

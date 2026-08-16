@@ -166,6 +166,28 @@ const zh = {
   reasonOther: '其他',
   reportSubmitted: '收到了，谢谢',
 
+  // —— 门锁密码（只有自己看得到）
+  pinTitle: '门锁密码',
+  pinPrivateHint: '只有你自己看得到',
+  pinEmpty: '这儿要密码？记一个，下次就不用翻小票了',
+  pinAdd: '记个密码',
+  pinPlaceholder: '比如 1234#',
+  pinNotePlaceholder: '备注，比如「在小票底部」（可选）',
+  pinSave: '存好',
+  pinSaving: '存储中…',
+  pinEdit: '改',
+  pinDelete: '删掉',
+  pinSaveFailed: '没存上，再试一次',
+
+  // —— 上报厕所点位
+  reportToiletEntry: '上报厕所不存在',
+  reportToiletTitle: '这个厕所有问题？',
+  reasonNotExist: '厕所不存在',
+  reasonClosed: '店家关闭',
+  reportOtherPlaceholder: '说说具体是什么情况（可选）',
+  reportOtherSubmit: '提交',
+  reportSkipReason: '不填理由，直接上报',
+
   // —— 分享
   share: '生成分享图',
   shareTitle: '分享卡片',
@@ -200,6 +222,26 @@ const zh = {
   accountStatsUnit: '条',
   accountMyReviews: '我的评论',
   accountNoReviews: '还没写过评论，去给某个厕所留一条锐评吧',
+
+  // —— 新手导览
+  help: '帮助',
+  helpTitle: '怎么用',
+  helpIntro: '厕评 = 找厕所 + 看别人写的（AI 润色过的）搞笑锐评',
+  helpMapTitle: '地图上的点',
+  helpMapBody: '每个点是一个厕所，点一下看详情、看评价',
+  helpModeTitle: '搞笑模式 / 地图模式',
+  helpModeBody:
+    '底部中间那个圆形按钮（💩/🔍）用来切换两种浏览方式：搞笑模式刷全站最热的锐评和厕所，跟位置没关系；地图模式按距离列出你附近的厕所。想看好笑的内容切搞笑模式，想找最近的厕所切地图模式',
+  helpSearchTitle: '搜索',
+  helpSearchBody: '搜地名直接跳过去，不用人在现场也能找厕所、报厕所',
+  helpAddTitle: '报个新厕所',
+  helpAddBody: '发现一个没收录的厕所？拖地图选好位置，几步就能加上',
+  helpLocateTitle: '回到我的位置',
+  helpLocateBody: '地图飞回你当前所在的位置',
+  helpReviewTitle: '写评价',
+  helpReviewBody: '勾选标签、选个文风，AI 帮你生成锐评，发布前还能自己改',
+  helpAccountTitle: '我的',
+  helpAccountBody: '登录后能保存写评论的战绩（AI 生成/手写分别计数），换设备也找得回来',
 
   // —— 通用
   back: '返回',
@@ -381,6 +423,26 @@ const en: Dict = {
   reasonOther: 'Other',
   reportSubmitted: 'Got it, thanks',
 
+  pinTitle: 'Door code',
+  pinPrivateHint: 'Only you can see this',
+  pinEmpty: 'Needs a code? Save it here so you never dig through receipts again',
+  pinAdd: 'Save a code',
+  pinPlaceholder: 'e.g. 1234#',
+  pinNotePlaceholder: 'Note, e.g. "bottom of the receipt" (optional)',
+  pinSave: 'Save',
+  pinSaving: 'Saving…',
+  pinEdit: 'Edit',
+  pinDelete: 'Delete',
+  pinSaveFailed: "Couldn't save it, try again",
+
+  reportToiletEntry: "Report this toilet doesn't exist",
+  reportToiletTitle: "Something wrong with this toilet?",
+  reasonNotExist: "Doesn't exist",
+  reasonClosed: 'Business closed',
+  reportOtherPlaceholder: 'Tell us more (optional)',
+  reportOtherSubmit: 'Submit',
+  reportSkipReason: 'Skip the reason, just report it',
+
   share: 'Make share card',
   shareTitle: 'Share card',
   shareHint: 'Long-press to save, or hit the button below',
@@ -412,6 +474,25 @@ const en: Dict = {
   accountStatsUnit: '',
   accountMyReviews: 'My reviews',
   accountNoReviews: "Haven't written one yet — go leave a review somewhere",
+
+  help: 'Help',
+  helpTitle: 'How it works',
+  helpIntro: 'pooping = find a toilet + read funny (AI-polished) reviews people left',
+  helpMapTitle: 'Dots on the map',
+  helpMapBody: 'Each dot is a toilet — tap one to see details and reviews',
+  helpModeTitle: 'Funny mode / Map mode',
+  helpModeBody:
+    "The round button at the bottom center (💩/🔍) switches between two browsing modes: Funny mode surfaces the site's top reviews and toilets regardless of location; Map mode lists toilets near you, sorted by distance. Switch to Funny mode for a laugh, switch to Map mode to find the closest one",
+  helpSearchTitle: 'Search',
+  helpSearchBody: "Search a place name to jump there — you don't have to be there in person",
+  helpAddTitle: 'Add a toilet',
+  helpAddBody: "Found one that's not on here? Drag the map to the spot and add it in a few steps",
+  helpLocateTitle: 'Recenter',
+  helpLocateBody: 'Jump the map back to where you currently are',
+  helpReviewTitle: 'Write a review',
+  helpReviewBody: 'Pick some tags and a style, AI drafts it for you — edit before you post',
+  helpAccountTitle: 'Account',
+  helpAccountBody: 'Log in to save your review stats (AI-generated vs hand-written) across devices',
 
   back: 'Back',
   close: 'Close',

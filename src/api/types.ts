@@ -42,6 +42,9 @@ export type ReportReason =
   | 'privacy'
   | 'other'
 
+/** 举报"这个点位有问题"，跟举报评价（ReportReason）是两回事——理由体系不一样。 */
+export type ToiletReportReason = 'not_exist' | 'closed' | 'other'
+
 /** 永远是 WGS-84。转 GCJ-02 只发生在 src/map/coords.ts。 */
 export interface LatLng {
   lat: number
