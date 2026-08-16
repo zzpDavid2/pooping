@@ -199,14 +199,14 @@ export default function AccountSheet({ onClose }: AccountSheetProps) {
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder={t.accountCodePlaceholder}
                     className="w-full rounded-xl border border-poo-200 px-3 py-2 text-center text-lg tracking-[0.3em] outline-none focus:border-poo-500"
                   />
                   <button
                     type="button"
                     onClick={() => void handleVerify()}
-                    disabled={busy || code.length < 6}
+                    disabled={busy || code.length < 4}
                     className="btn btn--primary w-full"
                   >
                     {busy ? (
