@@ -166,6 +166,19 @@ const zh = {
   reasonOther: '其他',
   reportSubmitted: '收到了，谢谢',
 
+  // —— 门锁密码（只有自己看得到）
+  pinTitle: '门锁密码',
+  pinPrivateHint: '只有你自己看得到',
+  pinEmpty: '这儿要密码？记一个，下次就不用翻小票了',
+  pinAdd: '记个密码',
+  pinPlaceholder: '比如 1234#',
+  pinNotePlaceholder: '备注，比如「在小票底部」（可选）',
+  pinSave: '存好',
+  pinSaving: '存储中…',
+  pinEdit: '改',
+  pinDelete: '删掉',
+  pinSaveFailed: '没存上，再试一次',
+
   // —— 上报厕所点位
   reportToiletEntry: '上报厕所不存在',
   reportToiletTitle: '这个厕所有问题？',
@@ -409,6 +422,18 @@ const en: Dict = {
   reasonPrivacy: 'Privacy issue',
   reasonOther: 'Other',
   reportSubmitted: 'Got it, thanks',
+
+  pinTitle: 'Door code',
+  pinPrivateHint: 'Only you can see this',
+  pinEmpty: 'Needs a code? Save it here so you never dig through receipts again',
+  pinAdd: 'Save a code',
+  pinPlaceholder: 'e.g. 1234#',
+  pinNotePlaceholder: 'Note, e.g. "bottom of the receipt" (optional)',
+  pinSave: 'Save',
+  pinSaving: 'Saving…',
+  pinEdit: 'Edit',
+  pinDelete: 'Delete',
+  pinSaveFailed: "Couldn't save it, try again",
 
   reportToiletEntry: "Report this toilet doesn't exist",
   reportToiletTitle: "Something wrong with this toilet?",

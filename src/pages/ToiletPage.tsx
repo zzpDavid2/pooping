@@ -14,6 +14,7 @@ import FacilityWall from '@/components/FacilityWall'
 import { RatingBars } from '@/components/Ratings'
 import ReviewCard from '@/components/ReviewCard'
 import NameVote from '@/components/NameVote'
+import PinBox from '@/components/PinBox'
 import PooScore from '@/components/PooScore'
 import ReportToiletDialog from '@/components/ReportToiletDialog'
 import ReviewComposer from '@/components/ReviewComposer'
@@ -120,7 +121,9 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
         <h1 className="min-w-0 flex-1 truncate font-semibold">{displayName(toilet, locale)}</h1>
       </header>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-3 pb-24">
+      {/* pb 要盖过底部固定的「写条锐评」栏（约 65px + 安全区），否则滚到底时
+          最后一块内容会被压在按钮下面，点不到 —— 加密码框那次就踩了这个坑 */}
+      <div className="flex-1 space-y-3 overflow-y-auto p-3 pb-32">
         <section className="card">
           <div className="flex items-start justify-between gap-3">
             <h2 className="min-w-0 flex-1 text-lg font-bold leading-snug">
@@ -191,6 +194,10 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
         <section className="card">
           <h3 className="mb-2.5 text-sm font-semibold">{t.facilities}</h3>
           <FacilityWall toilet={toilet} />
+        </section>
+
+        <section className="card">
+          <PinBox toiletId={toilet.id} />
         </section>
 
         <section className="space-y-2">
