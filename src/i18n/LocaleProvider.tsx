@@ -17,9 +17,25 @@ interface LocaleContextValue {
   t: Copy
   setLocale: (l: Locale) => void
   toggleLocale: () => void
+  /**
+   * 跟着地图版本走的语言建议：切到海外版默认英文、国内版默认中文。
+   * **只在用户从没手动选过语言时生效** —— 手动选过就是明确表态，不能覆盖。
+   */
+  suggestLocaleForRegion: (region: 'cn' | 'intl') => void
 }
 
 export const LocaleContext = createContext<LocaleContextValue | null>(null)
+
+/** 用户手动选过语言（点过切换按钮或带过 ?lang=）就记一笔，之后不再自动改。 */
+function hasExplicitChoice(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY)
+    return saved === 'zh' || saved === 'en'
+  } catch {
+    return false
+  }
+}
 
 function detectLocale(): Locale {
   if (typeof window === 'undefined') return 'zh'
@@ -59,14 +75,21 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     document.title = locale === 'zh' ? '厕评 · pooping' : 'pooping'
   }, [locale])
 
+  const suggestLocaleForRegion = useCallback((region: 'cn' | 'intl') => {
+    // 手动选过语言就不动它 —— 用户的明确选择优先于我们的猜测
+    if (hasExplicitChoice()) return
+    setLocaleState(region === 'intl' ? 'en' : 'zh')
+  }, [])
+
   const value = useMemo<LocaleContextValue>(
     () => ({
       locale,
       t: COPY[locale],
       setLocale,
       toggleLocale: () => setLocale(locale === 'zh' ? 'en' : 'zh'),
+      suggestLocaleForRegion,
     }),
-    [locale, setLocale],
+    [locale, setLocale, suggestLocaleForRegion],
   )
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>

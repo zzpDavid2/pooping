@@ -66,7 +66,7 @@ const FEATURED_TOILET_PAGE_SIZE = 24
 const FEATURED_REVIEW_PAGE_SIZE = 12
 
 export default function MapPage() {
-  const { t, locale } = useI18n()
+  const { t, locale, suggestLocaleForRegion } = useI18n()
   const navigate = useNavigate()
 
   const [region, setRegionState] = useState<Region>(resolveRegion)
@@ -129,12 +129,24 @@ export default function MapPage() {
   }, [])
 
   // 换地区 = 换底图坐标系，地图会整个重建，查询中心也跟着回到该地区的默认城市
-  const handleRegionChange = useCallback((next: Region) => {
-    setRegionState(next)
-    setSelectedId(null)
-    setAddMode('off')
-    setBrowseSearchOpen(false)
-    setQueryCenter(defaultCenterFor(next))
+  const handleRegionChange = useCallback(
+    (next: Region) => {
+      setRegionState(next)
+      setSelectedId(null)
+      setAddMode('off')
+      setBrowseSearchOpen(false)
+      setQueryCenter(defaultCenterFor(next))
+      // 海外版默认英文界面。只对没手动选过语言的用户生效，见 LocaleProvider
+      suggestLocaleForRegion(next)
+    },
+    [suggestLocaleForRegion],
+  )
+
+  // 首次进来时地区可能是自动猜的（时区/浏览器语言），语言也跟着对齐一次
+  useEffect(() => {
+    suggestLocaleForRegion(region)
+    // 只在挂载时跑；之后的地区切换由 handleRegionChange 负责
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
