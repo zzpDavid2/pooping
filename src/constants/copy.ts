@@ -166,6 +166,15 @@ const zh = {
   reasonOther: '其他',
   reportSubmitted: '收到了，谢谢',
 
+  // —— 上报厕所点位
+  reportToiletEntry: '上报厕所不存在',
+  reportToiletTitle: '这个厕所有问题？',
+  reasonNotExist: '厕所不存在',
+  reasonClosed: '店家关闭',
+  reportOtherPlaceholder: '说说具体是什么情况（可选）',
+  reportOtherSubmit: '提交',
+  reportSkipReason: '不填理由，直接上报',
+
   // —— 分享
   share: '生成分享图',
   shareTitle: '分享卡片',
@@ -400,6 +409,14 @@ const en: Dict = {
   reasonPrivacy: 'Privacy issue',
   reasonOther: 'Other',
   reportSubmitted: 'Got it, thanks',
+
+  reportToiletEntry: "Report this toilet doesn't exist",
+  reportToiletTitle: "Something wrong with this toilet?",
+  reasonNotExist: "Doesn't exist",
+  reasonClosed: 'Business closed',
+  reportOtherPlaceholder: 'Tell us more (optional)',
+  reportOtherSubmit: 'Submit',
+  reportSkipReason: 'Skip the reason, just report it',
 
   share: 'Make share card',
   shareTitle: 'Share card',

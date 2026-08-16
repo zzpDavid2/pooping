@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronLeft, PenLine, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { ChevronLeft, Flag, PenLine, ThumbsDown, ThumbsUp } from 'lucide-react'
 
 import {
   getReviews,
@@ -15,6 +15,7 @@ import { RatingBars } from '@/components/Ratings'
 import ReviewCard from '@/components/ReviewCard'
 import NameVote from '@/components/NameVote'
 import PooScore from '@/components/PooScore'
+import ReportToiletDialog from '@/components/ReportToiletDialog'
 import ReviewComposer from '@/components/ReviewComposer'
 import ShareCard from '@/components/ShareCard'
 import { useI18n } from '@/i18n/useI18n'
@@ -35,6 +36,7 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
   const [loading, setLoading] = useState(true)
   const [composing, setComposing] = useState(false)
   const [sharing, setSharing] = useState<Review | null>(null)
+  const [reportingToilet, setReportingToilet] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -165,6 +167,15 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
               </button>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setReportingToilet(true)}
+            className="mt-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink-soft"
+          >
+            <Flag size={12} />
+            {t.reportToiletEntry}
+          </button>
         </section>
 
         <section className="card">
@@ -231,6 +242,10 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
           toiletName={displayName(toilet, locale)}
           onClose={() => setSharing(null)}
         />
+      )}
+
+      {reportingToilet && (
+        <ReportToiletDialog toiletId={toilet.id} onClose={() => setReportingToilet(false)} />
       )}
     </div>
   )

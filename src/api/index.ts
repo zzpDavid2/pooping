@@ -35,7 +35,7 @@ export {
   type CreateReviewInput,
   type ReviewStats,
 } from './reviews'
-export { reportReview } from './reports'
+export { reportReview, reportToilet } from './reports'
 export { searchAddress, type GeocodeResult } from './geocode'
 export {
   getToiletNames,
