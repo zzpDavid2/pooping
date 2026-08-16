@@ -332,6 +332,51 @@ export interface ReviewStats {
 }
 
 /**
+ * 我写过的评论，按好笑度排序 —— 主页要秀的是"我写得最好笑的那几条"，
+ * 不是发布时间顺序。结构上跟 getTopReviews 一样，只是把"全站排行"换成"按我过滤"。
+ */
+export async function getMyReviews(limit = 30, offset = 0): Promise<Result<FeaturedReview[]>> {
+  if (!isSupabaseConfigured) {
+    return fail('not_configured', 'Supabase 未配置 / Supabase is not configured')
+  }
+
+  const session = await ensureSession()
+  if (session.error) return { data: null, error: session.error }
+
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(
+        `${REVIEW_COLUMNS},toilets!inner(id,name,name_en,voted_name,building,floor,status)`,
+      )
+      .eq('user_id', session.data.id)
+      .order('funny_score', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + Math.max(limit, 1) - 1)
+
+    if (error) return fail(error.code || 'db_error', error.message)
+    return ok(
+      ((data ?? []) as unknown as FeaturedReviewRow[])
+        .map((r) => ({ row: r, toilet: Array.isArray(r.toilets) ? r.toilets[0] : r.toilets }))
+        .filter((x): x is { row: FeaturedReviewRow; toilet: ToiletJoinRow } => Boolean(x.toilet))
+        .map(({ row, toilet }) => ({
+          ...mapReviewRow(row),
+          toilet: {
+            id: toilet.id,
+            name: toilet.name,
+            nameEn: toilet.name_en,
+            votedName: toilet.voted_name,
+            building: toilet.building,
+            floor: toilet.floor,
+          },
+        })),
+    )
+  } catch (e) {
+    return fromThrown(e, 'db_error')
+  }
+}
+
+/**
  * 我的战绩：AI 生成 / 手写评论各写了多少条。
  * 两条 count 查询并发，head:true 只要总数不要行数据，比拉全部再数快得多。
  */

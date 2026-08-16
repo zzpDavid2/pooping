@@ -1,7 +1,6 @@
-import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { CircleUserRound, Globe, Languages } from 'lucide-react'
 
-import AccountSheet from '@/components/AccountSheet'
 import { useI18n } from '@/i18n/useI18n'
 // 同样绕开桶文件，别把地图库拉进首屏（见 src/map/index.ts）
 import { setRegion, type Region } from '@/map/region'
@@ -19,7 +18,7 @@ interface TopBarProps {
  */
 export default function TopBar({ region, onRegionChange }: TopBarProps) {
   const { t, locale, toggleLocale } = useI18n()
-  const [accountOpen, setAccountOpen] = useState(false)
+  const navigate = useNavigate()
 
   function switchRegion(next: Region) {
     if (next === region) return
@@ -81,7 +80,7 @@ export default function TopBar({ region, onRegionChange }: TopBarProps) {
 
           <button
             type="button"
-            onClick={() => setAccountOpen(true)}
+            onClick={() => navigate('/me')}
             className="rounded-xl bg-white/95 p-1.5 shadow-sm backdrop-blur"
             aria-label={t.account}
           >
@@ -89,12 +88,6 @@ export default function TopBar({ region, onRegionChange }: TopBarProps) {
           </button>
         </div>
       </div>
-
-      {accountOpen && (
-        <div className="pointer-events-auto">
-          <AccountSheet onClose={() => setAccountOpen(false)} />
-        </div>
-      )}
     </header>
   )
 }

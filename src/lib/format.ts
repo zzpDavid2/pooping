@@ -1,4 +1,4 @@
-import type { Locale, Review, Toilet } from '@/api/types'
+import type { FeaturedReview, Locale, Review, Toilet } from '@/api/types'
 import type { Copy } from '@/constants/copy'
 
 /**
@@ -36,6 +36,14 @@ export function displayAddress(t: Toilet, locale: Locale): string | null {
 /** 楼栋 + 楼层，两个都可能为空 */
 export function displayPlace(t: Toilet): string | null {
   return [t.building, t.floor].filter(Boolean).join(' · ') || null
+}
+
+/** FeaturedReview 里带的是精简版厕所信息（没有 review count 等字段），跟 displayName 分开一个实现 */
+export function displayFeaturedToiletName(toilet: FeaturedReview['toilet'], locale: Locale): string {
+  const voted = toilet.votedName?.trim()
+  if (voted) return voted
+  if (locale === 'en') return toilet.nameEn?.trim() || toilet.name
+  return toilet.name?.trim() || toilet.nameEn || ''
 }
 
 export function formatDistance(meters: number | null, t: Copy): string {

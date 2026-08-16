@@ -25,7 +25,7 @@ import { useGeolocation } from '@/hooks/useGeolocation'
 import { movedEnough, useToilets } from '@/hooks/useToilets'
 import { useI18n } from '@/i18n/useI18n'
 import { loadBootstrap } from '@/lib/bootstrap'
-import { displayName, displayPlace, overallScore } from '@/lib/format'
+import { displayFeaturedToiletName, displayName, displayPlace, overallScore } from '@/lib/format'
 import PooScore from '@/components/PooScore'
 // 从具体模块引，不要走 '@/map' 桶文件 —— 桶文件会把 adapter（进而把 maplibre-gl）
 // 拉进这个模块的静态依赖图，MapView 的懒加载就白做了。见 src/map/index.ts 的说明。
@@ -887,16 +887,6 @@ function stableJitter(id: string): number {
 
 function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n))
-}
-
-function displayFeaturedToiletName(
-  toilet: FeaturedReview['toilet'],
-  locale: 'zh' | 'en',
-): string {
-  const voted = toilet.votedName?.trim()
-  if (voted) return voted
-  if (locale === 'en') return toilet.nameEn?.trim() || toilet.name
-  return toilet.name?.trim() || toilet.nameEn || ''
 }
 
 function applyReviewVote(review: Review, value: -1 | 1): Review {

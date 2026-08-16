@@ -28,6 +28,7 @@ export {
   generateReview,
   createReview,
   deleteReview,
+  getMyReviews,
   getMyReviewStats,
   type GenerateInput,
   type GeneratedReview,
