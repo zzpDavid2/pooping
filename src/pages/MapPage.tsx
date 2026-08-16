@@ -59,6 +59,8 @@ const SHEET_MIN_VH: Record<HomeMode, number> = {
   funny: 50,
   map: 42,
 }
+/** 选点模式下底部那条控制栏的大致高度（搜索框 + 提示 + 两个按钮） */
+const PLACING_BAR_PX = 150
 const SHEET_EXPAND_WHEEL_PX = 320
 const SHEET_COLLAPSE_WHEEL_PX = 520
 const SHEET_DRAG_GAIN = 1.45
@@ -96,6 +98,8 @@ export default function MapPage() {
   const [sharing, setSharing] = useState<{ review: Review; toiletName: string } | null>(null)
 
   const mapRef = useRef<MapHandle | null>(null)
+  /** 选点准星的圆环。confirmPin 按它的真实屏幕位置取坐标，见那里的注释。 */
+  const crosshairRef = useRef<HTMLDivElement | null>(null)
   const autoSearchTimer = useRef<number | null>(null)
   const sheetDragRef = useRef<{ y: number; progress: number } | null>(null)
   const sheetTouchRef = useRef<{
@@ -187,7 +191,17 @@ export default function MapPage() {
   const selected = toilets.find((x) => x.id === selectedId) ?? null
   const sheetMinVh = SHEET_MIN_VH[mode]
   const sheetHeightVh = sheetMinVh + (SHEET_MAX_VH - sheetMinVh) * sheetProgress
-  const mapBottomInsetPx = Math.round((sheetHeightVh / 100) * viewportHeight)
+  /**
+   * 地图相机的底部内边距 = 底部 UI 真正盖住地图的高度。
+   *
+   * 选点模式下大面板是收起来的，只剩一条矮控制栏 —— 这里必须跟着变小，
+   * 否则相机中心被顶到屏幕上方，moveTo（搜索跳转）会把目标放在准星够不着的
+   * 地方，用户对准的和存下的差出几百米。
+   */
+  const mapBottomInsetPx =
+    addMode === 'placing'
+      ? PLACING_BAR_PX
+      : Math.round((sheetHeightVh / 100) * viewportHeight)
   const hasMoreFeatured = hasMoreFeaturedToilets || hasMoreFeaturedReviews
 
   async function loadMoreFeatured() {
@@ -323,8 +337,20 @@ export default function MapPage() {
   }
 
   function confirmPin() {
-    // 从适配器拿中心点，它已经把 GCJ-02 转回 WGS-84 了，别自己算
-    const center = mapRef.current?.getCenter() ?? queryCenter
+    const map = mapRef.current
+    const el = crosshairRef.current
+
+    // 按准星圆环的真实屏幕位置反算坐标。
+    // **不能用 map.getCenter()** —— 相机有 bottom padding（底部面板盖住地图），
+    // 它认的中心在屏幕上比准星高一大截，实测差 176px ≈ 719 米。
+    // 适配器已经把 GCJ-02 转回 WGS-84 了，这里不用自己算。
+    let picked: LatLng | null = null
+    if (map && el) {
+      const r = el.getBoundingClientRect()
+      picked = map.unprojectClientPoint({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
+    }
+
+    const center = picked ?? map?.getCenter() ?? queryCenter
     if (!center) return
     setPinLocation(center)
     setAddMode('form')
@@ -495,12 +521,27 @@ export default function MapPage() {
           <MapPlaceholder label={t.locating} />
         )}
 
-        {/* 选点用的十字准星。固定在屏幕中心，用户拖地图去对准它 ——
-            比让用户捏着一个小图钉拖要稳得多，尤其单手操作时。 */}
+        {/* 选点用的十字准星。用户拖地图去对准它 ——
+            比让用户捏着一个小图钉拖要稳得多，尤其单手操作时。
+
+            **定位必须扣掉 bottomInset**：相机带着底部 padding，它的中心在
+            屏幕上比容器几何中心高一截。准星画在容器正中的话，「搜索跳转」
+            会把目标放到准星够不着的地方，用户对准的和存下的差几百米
+            （实测最坏 176px ≈ 719 米）。这个盒子刚好等于相机可见区，
+            在里面居中 = 落在相机中心。
+
+            圆环挂了 ref，confirmPin 按它的真实屏幕位置反算坐标 ——
+            万一以后 CSS 再改动，取点也不会跟着错位。 */}
         {addMode === 'placing' && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-            <div className="relative -translate-y-3">
-              <div className="h-9 w-9 rounded-full border-[3px] border-poo-600 bg-poo-600/20" />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center"
+            style={{ bottom: mapBottomInsetPx }}
+          >
+            <div className="relative">
+              <div
+                ref={crosshairRef}
+                className="h-9 w-9 rounded-full border-[3px] border-poo-600 bg-poo-600/20"
+              />
               <div className="absolute left-1/2 top-full h-4 w-0.5 -translate-x-1/2 bg-poo-600" />
             </div>
           </div>
