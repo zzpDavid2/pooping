@@ -3,6 +3,7 @@ import { Navigate, useLocation, useMatch } from 'react-router-dom'
 
 import { ensureSession, isSupabaseConfigured } from '@/api'
 import MapPage from '@/pages/MapPage'
+import ProfilePage from '@/pages/ProfilePage'
 import ToiletPage from '@/pages/ToiletPage'
 
 /**
@@ -19,17 +20,19 @@ export default function App() {
   const location = useLocation()
   const detail = useMatch('/t/:id')
   const isDetail = Boolean(detail)
+  const isProfile = location.pathname === '/me'
+  const isOverlay = isDetail || isProfile
 
   /**
    * 地图一旦挂上就不再卸载。
    *
-   * 但**深链直接打开详情页时不要提前挂** —— 那会在用户还没看地图的时候
+   * 但**深链直接打开覆盖页（详情页/我的）时不要提前挂** —— 那会在用户还没看地图的时候
    * 就弹出定位授权、并且白拉一次 800KB 的地图库。等他返回地图时再挂。
    */
-  const [mapMounted, setMapMounted] = useState(!isDetail)
+  const [mapMounted, setMapMounted] = useState(!isOverlay)
   useEffect(() => {
-    if (!isDetail) setMapMounted(true)
-  }, [isDetail])
+    if (!isOverlay) setMapMounted(true)
+  }, [isOverlay])
 
   // 打开即用：后台悄悄开一个匿名号，用户完全无感（CLAUDE.md 第 5 节）。
   // 失败也不拦路 —— 只看评价不需要登录，写的时候会再试一次。
@@ -37,13 +40,14 @@ export default function App() {
     if (isSupabaseConfigured) void ensureSession()
   }, [])
 
-  const known = location.pathname === '/' || isDetail
+  const known = location.pathname === '/' || isDetail || isProfile
   if (!known) return <Navigate to="/" replace />
 
   return (
     <>
       {mapMounted && <MapPage />}
       {detail?.params.id && <ToiletPage toiletId={detail.params.id} />}
+      {isProfile && <ProfilePage />}
     </>
   )
 }

@@ -198,6 +198,8 @@ const zh = {
   accountStatsAi: 'AI 生成',
   accountStatsManual: '手写',
   accountStatsUnit: '条',
+  accountMyReviews: '我的评论',
+  accountNoReviews: '还没写过评论，去给某个厕所留一条锐评吧',
 
   // —— 通用
   back: '返回',
@@ -408,6 +410,8 @@ const en: Dict = {
   accountStatsAi: 'AI-generated',
   accountStatsManual: 'Hand-written',
   accountStatsUnit: '',
+  accountMyReviews: 'My reviews',
+  accountNoReviews: "Haven't written one yet — go leave a review somewhere",
 
   back: 'Back',
   close: 'Close',
