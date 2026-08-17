@@ -89,6 +89,11 @@ export interface Toilet extends LatLng {
   funnyVote: -1 | 0 | 1
   /** 只有 nearby 查询会带上，详情页没有 */
   distanceM: number | null
+  /**
+   * 当前用户能不能改这个点的坐标（自己报的点 或 自己是管理员）。
+   * 由数据库算好（toilet_by_id），列表查询不算，恒为 false。
+   */
+  canFixLocation: boolean
 }
 
 export interface Review {

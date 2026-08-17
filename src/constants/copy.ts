@@ -188,6 +188,29 @@ const zh = {
   reportOtherSubmit: '提交',
   reportSkipReason: '不填理由，直接上报',
 
+  // —— 修正点位
+  fixLocation: '修正位置',
+  fixLocationTitle: '把它挪到对的地方',
+  fixLocationHint: '拖地图，让准星对准真正的门口',
+  fixLocationMoved: (m: number) => `离原来的位置 ${m} 米`,
+  fixLocationSave: '就是这儿',
+  fixLocationSaving: '挪动中…',
+  fixLocationFailed: '没挪成，再试一次',
+  fixLocationTooFar: '一次最多挪 3 公里。差这么远的话，直接报个新厕所吧',
+  fixLocationForbidden: '这个点不是你报的，改不了',
+  fixLocationRateLimited: '改得有点猛，歇一会儿再来',
+  fixLocationDone: '挪好了，位置已经更新',
+
+  // —— 管理端
+  adminSection: '管理员：被上报的点位',
+  adminEmpty: '没有待处理的上报，天下太平 🎉',
+  adminReportCount: (n: number) => `${n} 人上报`,
+  adminNoReason: '没写理由',
+  adminResolve: '标记已处理',
+  adminResolving: '处理中…',
+  adminOpenToilet: '看详情',
+  adminLoadFailed: '拉不到上报列表，刷新试试',
+
   // —— 分享
   share: '生成分享图',
   shareTitle: '分享卡片',
@@ -442,6 +465,27 @@ const en: Dict = {
   reportOtherPlaceholder: 'Tell us more (optional)',
   reportOtherSubmit: 'Submit',
   reportSkipReason: 'Skip the reason, just report it',
+
+  fixLocation: 'Fix location',
+  fixLocationTitle: 'Move it where it actually is',
+  fixLocationHint: 'Drag the map until the crosshair sits on the real door',
+  fixLocationMoved: (m: number) => `${m} m from where it was`,
+  fixLocationSave: 'Right here',
+  fixLocationSaving: 'Moving…',
+  fixLocationFailed: "Couldn't move it, try again",
+  fixLocationTooFar: '3 km max per move. If it is that far off, just add a new toilet',
+  fixLocationForbidden: "You didn't add this one, so you can't move it",
+  fixLocationRateLimited: 'Easy there — too many edits. Try again later',
+  fixLocationDone: 'Moved. The location is updated',
+
+  adminSection: 'Admin: reported spots',
+  adminEmpty: 'Nothing to review. All quiet on the porcelain front 🎉',
+  adminReportCount: (n: number) => `${n} report${n === 1 ? '' : 's'}`,
+  adminNoReason: 'No reason given',
+  adminResolve: 'Mark handled',
+  adminResolving: 'Working…',
+  adminOpenToilet: 'Open',
+  adminLoadFailed: "Couldn't load the reports, try refreshing",
 
   share: 'Make share card',
   shareTitle: 'Share card',

@@ -4,6 +4,7 @@ import { ChevronLeft, Loader2, LogOut } from 'lucide-react'
 
 import {
   getCurrentUser,
+  getIsAdmin,
   getMyReviews,
   getMyReviewStats,
   signOut,
@@ -16,6 +17,7 @@ import {
   type Review,
   type ReviewStats,
 } from '@/api'
+import AdminFlaggedToilets from '@/components/AdminFlaggedToilets'
 import ReviewCard from '@/components/ReviewCard'
 import { useI18n } from '@/i18n/useI18n'
 import { displayFeaturedToiletName } from '@/lib/format'
@@ -35,6 +37,7 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<ReviewStats | null>(null)
   const [reviews, setReviews] = useState<FeaturedReview[]>([])
   const [loadingUser, setLoadingUser] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -62,6 +65,8 @@ export default function ProfilePage() {
     void getMyReviews().then((r) => {
       if (r.data) setReviews(r.data)
     })
+    // 管理员那块只对名单里的人显示。真正的权限在数据库，这里错了也拿不到数据
+    void getIsAdmin().then((r) => setIsAdmin(r.data === true))
   }
 
   function goBack() {
@@ -188,6 +193,8 @@ export default function ProfilePage() {
                 {t.accountSignOut}
               </button>
             </section>
+
+            {isAdmin && <AdminFlaggedToilets />}
 
             <section className="space-y-2">
               <h3 className="px-1 text-sm font-semibold">{t.accountMyReviews}</h3>

@@ -22,6 +22,8 @@ create table if not exists toilet_pins (
 
 create index if not exists toilet_pins_user_idx on toilet_pins (user_id);
 
+-- 跟仓库里其他 migration 一样先 drop：重复跑不该炸（本地补历史记录时踩过）
+drop trigger if exists toilet_pins_touch_updated_at on toilet_pins;
 create trigger toilet_pins_touch_updated_at
   before update on toilet_pins
   for each row execute function touch_updated_at();

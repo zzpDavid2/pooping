@@ -3,12 +3,19 @@ import { useEffect, useRef, type MutableRefObject } from 'react'
 import type { LatLng, Toilet } from '@/api/types'
 import { createMap, type MapHandle, type Region } from '@/map'
 
+/**
+ * 画一个点需要的最小信息。
+ * 收窄成这个而不是整个 Toilet：修正位置那个界面只有一个坐标要画，
+ * 没必要为了满足类型去凑一个假的完整 Toilet 出来。
+ */
+export type MapMarkerToilet = Pick<Toilet, 'id' | 'lat' | 'lng' | 'reviewCount'>
+
 interface MapViewProps {
   region: Region
   lang: 'zh' | 'en'
   /** WGS-84。地图适配器负责按地区做 GCJ-02 偏移，这里不用管。 */
   initialCenter: LatLng
-  toilets: Toilet[]
+  toilets: readonly MapMarkerToilet[]
   selectedId: string | null
   userPosition: LatLng | null
   onSelect: (id: string) => void
