@@ -25,6 +25,8 @@ interface Bbox {
 const CITIES: Record<string, Bbox> = {
   beijing: { south: 39.78, west: 116.20, north: 40.03, east: 116.58 },
   shanghai: { south: 31.13, west: 121.36, north: 31.33, east: 121.60 },
+  // 无锡主城区：梁溪 + 滨湖（太湖新城）+ 新吴 + 锡山、惠山近郊，不含江阴宜兴
+  wuxi: { south: 31.42, west: 120.15, north: 31.68, east: 120.50 },
   // Reed College 校园 + Portland 市中心
   portland: { south: 45.45, west: -122.8, north: 45.65, east: -122.5 },
   reed: { south: 45.475, west: -122.638, north: 45.487, east: -122.625 },
