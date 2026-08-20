@@ -49,6 +49,8 @@ interface ToiletRow {
   funny_down: number | null
   funny_score: number | null
   funny_vote?: number | null
+  /** 只有 toilet_by_id 会算这个；列表查询里是 undefined */
+  can_fix_location?: boolean | null
 }
 
 export function mapToiletRow(r: ToiletRow): Toilet {
@@ -87,6 +89,7 @@ export function mapToiletRow(r: ToiletRow): Toilet {
     funnyDown: r.funny_down ?? 0,
     funnyScore: r.funny_score ?? 0,
     funnyVote: voteValue(r.funny_vote),
+    canFixLocation: r.can_fix_location === true,
   }
 }
 
@@ -191,6 +194,52 @@ export async function createToilet(
     }
 
     return ok(String(data))
+  } catch (e) {
+    return fromThrown(e, 'db_error')
+  }
+}
+
+/**
+ * 修正一个已有点位的坐标。
+ *
+ * 谁能改由数据库说了算（见 add_location_fix migration）：
+ * 管理员谁的都能改，普通用户只能改自己报的、且一次最多挪 3 公里。
+ * 这里只负责把数据库那几种拒绝理由翻译成 UI 能挑文案的 code。
+ */
+export async function fixToiletLocation(
+  toiletId: string,
+  lat: number,
+  lng: number,
+): Promise<Result<{ lat: number; lng: number; movedM: number }>> {
+  if (!isSupabaseConfigured) {
+    return fail('not_configured', 'Supabase 未配置 / Supabase is not configured')
+  }
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return fail('invalid_input', '坐标无效 / invalid coordinates')
+  }
+
+  const session = await ensureSession()
+  if (session.error) return { data: null, error: session.error }
+
+  try {
+    const { data, error } = await supabase.rpc('fix_toilet_location', {
+      p_toilet_id: toiletId,
+      p_lat: lat,
+      p_lng: lng,
+    })
+
+    if (error) {
+      for (const code of ['forbidden', 'too_far', 'rate_limited', 'not_found', 'invalid_input']) {
+        if (error.message.includes(code)) return fail(code, error.message)
+      }
+      return fail(error.code || 'db_error', error.message)
+    }
+
+    const row = ((data ?? []) as Array<{ lat: number; lng: number; moved_m: number }>)[0]
+    if (!row) return fail('db_error', '没有返回结果 / no result')
+
+    return ok({ lat: row.lat, lng: row.lng, movedM: row.moved_m })
   } catch (e) {
     return fromThrown(e, 'db_error')
   }

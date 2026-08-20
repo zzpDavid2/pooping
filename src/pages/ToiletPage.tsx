@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Flag, PenLine, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { ChevronLeft, Flag, MapPin, PenLine, ThumbsDown, ThumbsUp } from 'lucide-react'
 
 import {
   getReviews,
@@ -11,6 +11,7 @@ import {
   type Toilet,
 } from '@/api'
 import FacilityWall from '@/components/FacilityWall'
+import FixLocationSheet from '@/components/FixLocationSheet'
 import { RatingBars } from '@/components/Ratings'
 import ReviewCard from '@/components/ReviewCard'
 import NameVote from '@/components/NameVote'
@@ -38,6 +39,8 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
   const [composing, setComposing] = useState(false)
   const [sharing, setSharing] = useState<Review | null>(null)
   const [reportingToilet, setReportingToilet] = useState(false)
+  const [fixingLocation, setFixingLocation] = useState(false)
+  const [locationFixed, setLocationFixed] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -171,14 +174,34 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setReportingToilet(true)}
-            className="mt-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink-soft"
-          >
-            <Flag size={12} />
-            {t.reportToiletEntry}
-          </button>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <button
+              type="button"
+              onClick={() => setReportingToilet(true)}
+              className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink-soft"
+            >
+              <Flag size={12} />
+              {t.reportToiletEntry}
+            </button>
+
+            {/* 只有自己报的点、或管理员才看得到。能不能真改由数据库说了算 */}
+            {toilet.canFixLocation && (
+              <button
+                type="button"
+                onClick={() => setFixingLocation(true)}
+                className="inline-flex items-center gap-1 text-xs font-medium text-poo-700 hover:text-poo-800"
+              >
+                <MapPin size={12} />
+                {t.fixLocation}
+              </button>
+            )}
+          </div>
+
+          {locationFixed && (
+            <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+              {t.fixLocationDone}
+            </p>
+          )}
         </section>
 
         <section className="card">
@@ -253,6 +276,20 @@ export default function ToiletPage({ toiletId: id }: ToiletPageProps) {
 
       {reportingToilet && (
         <ReportToiletDialog toiletId={toilet.id} onClose={() => setReportingToilet(false)} />
+      )}
+
+      {fixingLocation && (
+        <FixLocationSheet
+          toiletId={toilet.id}
+          name={displayName(toilet, locale)}
+          current={{ lat: toilet.lat, lng: toilet.lng }}
+          onClose={() => setFixingLocation(false)}
+          onSaved={(next) => {
+            setFixingLocation(false)
+            setLocationFixed(true)
+            setToilet((cur) => (cur ? { ...cur, ...next } : cur))
+          }}
+        />
       )}
     </div>
   )

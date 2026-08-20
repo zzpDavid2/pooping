@@ -16,10 +16,17 @@ export {
   getToiletById,
   getTopToilets,
   createToilet,
+  fixToiletLocation,
   voteToiletFunny,
   type NearbyOptions,
   type CreateToiletInput,
 } from './toilets'
+export {
+  getIsAdmin,
+  getFlaggedToilets,
+  resolveToiletReports,
+  type FlaggedToilet,
+} from './admin'
 export {
   getReviews,
   getTopReviews,

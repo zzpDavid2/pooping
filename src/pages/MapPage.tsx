@@ -37,7 +37,7 @@ import type { MapHandle } from '@/map/adapter'
  *
  * maplibre-gl 压缩后还有 ~800KB（gzip 218KB），静态引入的话首屏要等它下完再画。
  * 国内网络下这一等就是好几秒 —— 而列表其实不需要地图：
- * bootstrap.json 只有 12KB，先把附近厕所列出来，地图随后补上（见 8.3）。
+ * bootstrap.json 走 CDN，gzip 后 ~46KB，先把附近厕所列出来，地图随后补上（见 8.3）。
  */
 const MapView = lazy(() => import('@/components/MapView'))
 
