@@ -1,7 +1,8 @@
 /**
  * 首屏静态化（CLAUDE.md 8.3）。
  *
- *   pnpm prebuild:static -- --city=beijing --radius=8000
+ *   pnpm prebuild:static                                  # 默认烤全部首发城市
+ *   pnpm prebuild:static -- --city=wuxi,shanghai          # 只烤某几个（逗号分隔）
  *
  * 把首发城市的点位在构建时烤成 public/data/bootstrap.json，和站点一起走 CDN。
  * Supabase 在新加坡，国内到那儿 200ms 起步 —— 首屏不该等它。
@@ -20,6 +21,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
   beijing: { lat: 39.9042, lng: 116.4074 },
   shanghai: { lat: 31.2304, lng: 121.4737 },
+  wuxi: { lat: 31.4912, lng: 120.3119 },  // 三阳广场，主城几何中心
   portland: { lat: 45.5152, lng: -122.6784 },
 }
 
@@ -30,11 +32,21 @@ function arg(name: string, fallback: string): string {
 }
 
 async function main(): Promise<void> {
-  const city = arg('city', 'beijing')
-  const radius = Number(arg('radius', '8000'))
-  const center = CITY_CENTERS[city]
-  if (!center) {
-    throw new Error(`未知城市 ${city}，可选：${Object.keys(CITY_CENTERS).join(', ')}`)
+  // 默认烤全部首发城市。前端只 fetch 一个 bootstrap.json，
+  // 单城市默认值会让新城市一加进来就把老城市挤掉 —— 那不是取舍，是 bug。
+  const cities = arg('city', Object.keys(CITY_CENTERS).join(','))
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  // 15km：无锡主城南北跨了近 30 公里，8km 只够覆盖三分之一。
+  // 放大不会撑爆文件 —— 每个城市仍被 p_limit=300 卡住。
+  const radius = Number(arg('radius', '15000'))
+
+  const unknown = cities.filter((c) => !CITY_CENTERS[c])
+  if (unknown.length > 0) {
+    throw new Error(
+      `未知城市 ${unknown.join(', ')}，可选：${Object.keys(CITY_CENTERS).join(', ')}`,
+    )
   }
 
   // 只读，用 anon key 就够；service_role 不该出现在构建流程里
@@ -46,21 +58,34 @@ async function main(): Promise<void> {
   }
 
   const supabase = createClient(url, key, { auth: { persistSession: false } })
-  const { data, error } = await supabase.rpc('nearby_toilets', {
-    p_lat: center.lat,
-    p_lng: center.lng,
-    p_radius: radius,
-    p_limit: 300,
-    p_has_paper: null,
-    p_is_free: null,
-    p_accessible: null,
-    p_seated: null,
-  })
 
-  if (error) throw new Error(`查询失败：${error.message}`)
+  // 每个城市各查一次，按 id 去重后合进同一个文件。城市之间不会互相干扰：
+  // 前端的 withDistance 会按用户实际位置重排，无锡用户看到的还是无锡的点在前面。
+  const byId = new Map<string, Record<string, unknown>>()
+  for (const city of cities) {
+    const center = CITY_CENTERS[city]
+    if (!center) continue
+
+    const { data, error } = await supabase.rpc('nearby_toilets', {
+      p_lat: center.lat,
+      p_lng: center.lng,
+      p_radius: radius,
+      p_limit: 300,
+      p_has_paper: null,
+      p_is_free: null,
+      p_accessible: null,
+      p_seated: null,
+    })
+
+    if (error) throw new Error(`${city} 查询失败：${error.message}`)
+
+    const rows = (data ?? []) as Record<string, unknown>[]
+    for (const r of rows) byId.set(String(r.id), r)
+    console.log(`  ${city}: ${rows.length}`)
+  }
 
   // 直接写成前端的 camelCase 形状，省掉运行时一次映射
-  const toilets = (data ?? []).map((r: Record<string, unknown>) => ({
+  const toilets = [...byId.values()].map((r) => ({
     id: r.id,
     name: r.name,
     nameEn: r.name_en,
@@ -101,10 +126,10 @@ async function main(): Promise<void> {
   await mkdir(dirname(outPath), { recursive: true })
   await writeFile(
     outPath,
-    JSON.stringify({ generatedAt: new Date().toISOString(), city, toilets }),
+    JSON.stringify({ generatedAt: new Date().toISOString(), city: cities.join(','), toilets }),
   )
 
-  console.log(`✓ ${toilets.length} 个点位写入 public/data/bootstrap.json（${city}）`)
+  console.log(`✓ ${toilets.length} 个点位写入 public/data/bootstrap.json（${cities.join(', ')}）`)
 }
 
 // 这一步是锦上添花：拿不到数据就退回纯 API 模式，绝不让它把整个构建拖挂。
